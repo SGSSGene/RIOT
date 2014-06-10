@@ -273,7 +273,7 @@ relocate_section(void * fd,
 	  seek_read(fd, sectionaddr + rela.r_offset, (char *)&rela.r_addend, 4);
 	}
 
-	//	elfloader_arch_relocate(fd, sectionaddr, sectionbase, &rela, addr);
+	elfloader_arch_relocate(fd, sectionaddr, sectionbase, &rela, addr);
   }
   return ELFLOADER_OK;
 }
