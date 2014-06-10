@@ -24,10 +24,16 @@
 #include "loader/elfloader.h"
 #include "../dyn_app/hex_app.h"
 
+typedef int dyn_entry_func(void);
+
 int main(void)
 {
 	elfloader_init();
-	elfloader_load(hex_app);
-    puts("Done Parsing!");
+	int entry = elfloader_load(hex_app);
+	printf("Loaded Entry Point: 0x%x\n", elfloader_autostart_processes);
+	dyn_entry_func* dyn_entry = (dyn_entry_func*) elfloader_autostart_processes ;
+	int result = dyn_entry();
+	printf("result: %d\n", result);
+    puts("Done!");
     return 0;
 }
