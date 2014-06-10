@@ -32,7 +32,7 @@
 
 #include <stdint.h>
 #include <string.h>
-#include "loader/elfloader-arch.h"
+#include "elfloader-arch.h"
 
 
 #define ELFLOADER_DATAMEMORY_SIZE 0x100

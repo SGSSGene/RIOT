@@ -30,13 +30,11 @@
  *
  */
 
-//#include "contiki.h"
 
-#include "loader/elfloader.h"
-#include "loader/elfloader-arch.h"
+#include "elfloader.h"
+#include "elfloader-arch.h"
 
-//#include "cfs/cfs.h"
-#include "loader/symtab.h"
+#include "symtab.h"
 
 #include <stddef.h>
 #include <string.h>

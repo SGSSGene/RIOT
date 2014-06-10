@@ -21,7 +21,7 @@
 
 #include <stdio.h>
 #include <string.h>
-#include "loader/elfloader.h"
+#include "elfloader.h"
 #include "../dyn_app/hex_app.h"
 
 typedef int dyn_entry_func(void);

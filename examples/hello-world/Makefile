@@ -15,4 +15,6 @@ export QUIET ?= 1
 
 #export LINKFLAGS += -I../dyn_app/
 
+USEMODULE += elfloader
+
 include $(RIOTBASE)/Makefile.include
