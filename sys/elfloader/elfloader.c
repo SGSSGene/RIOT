@@ -559,7 +559,7 @@ elfloader_load(void * fd)
   seek_read(fd, dataoff, data.address, datasize);
 
   PRINTF("elfloader: autostart search\n");
-  process = (struct process **) find_local_symbol(fd, "func1", symtaboff, symtabsize, strtaboff);
+  process = (struct process **) find_local_symbol(fd, "dyn_loader_entry", symtaboff, symtabsize, strtaboff);
   if(process != NULL) {
 	PRINTF("elfloader: autostart found\n");
 	elfloader_autostart_processes = process;

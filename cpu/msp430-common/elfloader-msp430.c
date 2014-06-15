@@ -70,6 +70,6 @@ elfloader_arch_relocate(void * fd, unsigned int sectionoffset,
 {
   addr += rela->r_addend;
 
-  memcpy(fd + sectionoffset + rela->r_offset, addr, 2);
+  memcpy(fd + sectionoffset + rela->r_offset, &addr, 2);
 }
 /*---------------------------------------------------------------------------*/
