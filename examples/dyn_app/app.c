@@ -1,12 +1,12 @@
-//int main(void) {
-// 	return dyn_entry();
-//}
-
-int dyn_entry(void) {
+int dyn_loader_entry(void) {
 	return func1();
 }
 
-
 int func1(void) {
-	return 42;
+	return func2() + func2();
+}
+
+
+int func2(void) {
+	return 1337;
 }
