@@ -21,7 +21,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "elfloader.h"
-#include "dyn_app/dyn_app.h"
+#include "../test_loader_hello_world/bin/msb-430/dyn_main.h"
 
 typedef int dyn_entry_func(void);
 
@@ -34,8 +34,7 @@ int main(void)
 	int entry = elfloader_load(dyn_app, "dyn_main");
 
 	
-	printf("Dynamic entry point address: 0x%x\n",
-		   elfloader_autostart_processes);
+	printf("Dynamic entry point address: 0x%x\n", elfloader_autostart_processes);
 
 	// cast to function pointer
 	dyn_entry_func* dyn_entry =
