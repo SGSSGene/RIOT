@@ -129,6 +129,10 @@ void elfloader_init(void);
 /**
  * \brief      Load and relocate an ELF file.
  * \param fd   An open CFS file descriptor.
+ * \param entry_point_name
+ *             Name of the symbol for wich the address is set in
+ *             elfloader_autostart_processes
+ *
  * \return     ELFLOADER_OK if loading and relocation worked.
  *             Otherwise an error value.
  *
@@ -145,7 +149,7 @@ void elfloader_init(void);
  *             the file must be backed up first.
  *
  */
-int elfloader_load(void * fd);
+int elfloader_load(void * fd, char * entry_point_name);
 
 /**
  * A pointer to the processes loaded with elfloader_load().

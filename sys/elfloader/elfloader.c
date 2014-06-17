@@ -322,7 +322,7 @@ print_chars(unsigned char *ptr, int num)
 #endif /* 0 */
 /*---------------------------------------------------------------------------*/
 int
-elfloader_load(void * fd)
+elfloader_load(void * fd, char * entry_point_name)
 {
   struct elf32_ehdr ehdr;
   struct elf32_shdr shdr;
@@ -559,7 +559,7 @@ elfloader_load(void * fd)
   seek_read(fd, dataoff, data.address, datasize);
 
   PRINTF("elfloader: autostart search\n");
-  process = (struct process **) find_local_symbol(fd, "dyn_loader_entry", symtaboff, symtabsize, strtaboff);
+  process = (struct process **) find_local_symbol(fd, entry_point_name, symtaboff, symtabsize, strtaboff);
   if(process != NULL) {
 	PRINTF("elfloader: autostart found\n");
 	elfloader_autostart_processes = process;
