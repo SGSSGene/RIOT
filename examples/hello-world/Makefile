@@ -7,14 +7,7 @@ export BOARD ?= native
 # This has to be the absolute path to the RIOT base directory:
 export RIOTBASE ?= $(CURDIR)/../..
 
-#export RIOTCPU ?= $(CURDIR)/../../../thirdparty_cpu                        
-#export RIOTBOARD ?= $(CURDIR)/../../../thirdparty_boards      
-
 # Change this to 0 show compiler invocation lines by default:
 export QUIET ?= 1
-
-#export LINKFLAGS += -I../dyn_app/
-
-USEMODULE += elfloader
 
 include $(RIOTBASE)/Makefile.include
