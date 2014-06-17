@@ -1,5 +1,9 @@
+#include <stdio.h>
+
 int dyn_main(void) {
-	return func1();
+	int result = func1();
+	printf("Printing from dynamic app. Will return %d\n", result);
+	return result;
 }
 
 int func1(void) {
