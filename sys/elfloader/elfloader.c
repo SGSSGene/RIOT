@@ -185,13 +185,12 @@ find_local_symbol(void * fd, const char *symbol,
 /*---------------------------------------------------------------------------*/
 static int
 relocate_section(void * fd,
-		 unsigned int section, unsigned short size,
-		 unsigned int sectionaddr,
-		 char *sectionbase,
-		 unsigned int strs,
-		 unsigned int strtab,
-		 unsigned int symtab, unsigned short symtabsize,
-		 unsigned char using_relas)
+                 unsigned int section, unsigned short size,
+                 unsigned int sectionaddr,
+                 char *sectionbase,
+                 unsigned int strtab,
+                 unsigned int symtab, unsigned short symtabsize,
+                 unsigned char using_relas)
 {
   /* sectionbase added; runtime start address of current section */
   struct elf32_rela rela; /* Now used both for rel and rela data! */
@@ -478,7 +477,6 @@ elfloader_load(void * fd, const char * entry_point_name)
                                textrelaoff, textrelasize,
                                textoff,
                                text.address,
-                               strs,
                                strtaboff,
                                symtaboff, symtabsize, using_relas);
         if(ret != ELFLOADER_OK) {
@@ -493,7 +491,6 @@ elfloader_load(void * fd, const char * entry_point_name)
                                rodatarelaoff, rodatarelasize,
                                rodataoff,
                                rodata.address,
-                               strs,
                                strtaboff,
                                symtaboff, symtabsize, using_relas);
         if(ret != ELFLOADER_OK) {
@@ -509,7 +506,6 @@ elfloader_load(void * fd, const char * entry_point_name)
                                datarelaoff, datarelasize,
                                dataoff,
                                data.address,
-                               strs,
                                strtaboff,
                                symtaboff, symtabsize, using_relas);
         if(ret != ELFLOADER_OK) {
