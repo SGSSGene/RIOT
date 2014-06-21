@@ -120,13 +120,6 @@
 #define ELFLOADER_NO_STARTPOINT       7
 
 /**
- * elfloader initialization function.
- *
- * This function should be called at boot up to initialize the elfloader.
- */
-void elfloader_init(void);
-
-/**
  * \brief      Load and relocate an ELF file.
  * \param fd   An open CFS file descriptor.
  * \param entry_point_name

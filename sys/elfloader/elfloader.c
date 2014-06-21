@@ -131,7 +131,7 @@ struct relevant_section {
 
 char elfloader_unknown[30];	/* Name that caused link error. */
 
-struct process * const * elfloader_autostart_processes;
+struct process * const * elfloader_autostart_processes = NULL;
 
 static struct relevant_section bss, data, rodata, text;
 
@@ -298,12 +298,7 @@ find_program_processes(void * fd,
   return NULL;
 /*	 return find_local_symbol(fd, "autostart_processes", symtab, size, strtab); */
 }
-/*---------------------------------------------------------------------------*/
-void
-elfloader_init(void)
-{
-  elfloader_autostart_processes = NULL;
-}
+
 /*---------------------------------------------------------------------------*/
 #if 0
 static void
