@@ -325,7 +325,6 @@ elfloader_load(void * fd, const char * entry_point_name)
     unsigned short bsssize = 0;
 
     struct process **process;
-    int ret;
 
     elfloader_unknown[0] = 0;
 
@@ -475,7 +474,7 @@ elfloader_load(void * fd, const char * entry_point_name)
     /* If we have text segment relocations, we process them. */
     PRINTF("elfloader: relocate text\n");
     if(textrelasize > 0) {
-        ret = relocate_section(fd,
+        int ret = relocate_section(fd,
                                textrelaoff, textrelasize,
                                textoff,
                                text.address,
@@ -490,7 +489,7 @@ elfloader_load(void * fd, const char * entry_point_name)
     /* If we have any rodata segment relocations, we process them too. */
     PRINTF("elfloader: relocate rodata\n");
     if(rodatarelasize > 0) {
-        ret = relocate_section(fd,
+        int ret = relocate_section(fd,
                                rodatarelaoff, rodatarelasize,
                                rodataoff,
                                rodata.address,
@@ -506,7 +505,7 @@ elfloader_load(void * fd, const char * entry_point_name)
     /* If we have any data segment relocations, we process them too. */
     PRINTF("elfloader: relocate data\n");
     if(datarelasize > 0) {
-        ret = relocate_section(fd,
+        int ret = relocate_section(fd,
                                datarelaoff, datarelasize,
                                dataoff,
                                data.address,
