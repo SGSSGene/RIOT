@@ -32,12 +32,9 @@ typedef int dyn_entry_func(void);
 
 int main(void)
 {
-	// clear elfloader_autostart_processes
-	elfloader_init();
-
 	// relocate object file at char * dyn_app
 	int entry = elfloader_load(dyn_app, "dyn_main");
-	
+
 	printf("Dynamic entry point address: 0x%x\n", elfloader_autostart_processes);
 
 	// cast to function pointer
