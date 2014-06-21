@@ -14,6 +14,9 @@
  * @brief       Test application for the dynamic loader
  *
  * @author      Dimitri Schachmann <d.schachmann@fu-berlin.de>
+ * @author      Simon Gene Gottlieb <s.gottlieb@fu-berlin.de>
+ * @author      Ron Wenzel <ron.wenzel@fu-berlin.de>
+ * @author      Christopher Pockrandt <christopher.pockrandt@fu-berlin.de>
  *
  * @}
  */
@@ -21,6 +24,8 @@
 #include <stdio.h>
 #include <string.h>
 #include "elfloader.h"
+
+// provide the dynamic app as an array (workaround)
 #include "../test_loader_hello_world/bin/msb-430/dyn_main.h"
 
 typedef int dyn_entry_func(void);
@@ -32,7 +37,6 @@ int main(void)
 
 	// relocate object file at char * dyn_app
 	int entry = elfloader_load(dyn_app, "dyn_main");
-
 	
 	printf("Dynamic entry point address: 0x%x\n", elfloader_autostart_processes);
 

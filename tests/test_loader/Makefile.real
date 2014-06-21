@@ -12,6 +12,4 @@ export QUIET ?= 1
 
 USEMODULE += elfloader
 
-INCLUDE += -I./
-
 include $(RIOTBASE)/Makefile.include
