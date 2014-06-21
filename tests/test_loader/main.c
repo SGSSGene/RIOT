@@ -26,7 +26,7 @@
 #include "elfloader.h"
 
 // provide the dynamic app as an array (workaround)
-#include "../test_loader_hello_world/bin/msb-430/dyn_main.h"
+#include "../test_dyn_app/dyn_main.h"
 
 typedef int dyn_entry_func(void);
 
