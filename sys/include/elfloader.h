@@ -142,7 +142,7 @@
  *             the file must be backed up first.
  *
  */
-int elfloader_load(void * fd, char * entry_point_name);
+int elfloader_load(void * fd, const char * entry_point_name);
 
 /**
  * A pointer to the processes loaded with elfloader_load().
@@ -154,22 +154,6 @@ extern struct process * const * elfloader_autostart_processes;
  * into this array.
  */
 extern char elfloader_unknown[30];
-
-#ifndef ELFLOADER_DATAMEMORY_SIZE
-#ifdef ELFLOADER_CONF_DATAMEMORY_SIZE
-#define ELFLOADER_DATAMEMORY_SIZE ELFLOADER_CONF_DATAMEMORY_SIZE
-#else
-#define ELFLOADER_DATAMEMORY_SIZE 0x100
-#endif
-#endif /* ELFLOADER_DATAMEMORY_SIZE */
-
-#ifndef ELFLOADER_TEXTMEMORY_SIZE
-#ifdef ELFLOADER_CONF_TEXTMEMORY_SIZE
-#define ELFLOADER_TEXTMEMORY_SIZE ELFLOADER_CONF_TEXTMEMORY_SIZE
-#else
-#define ELFLOADER_TEXTMEMORY_SIZE 0x100
-#endif
-#endif /* ELFLOADER_TEXTMEMORY_SIZE */
 
 typedef uint32_t elf32_word;
 typedef int32_t  elf32_sword;
