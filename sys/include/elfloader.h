@@ -74,7 +74,7 @@
 #ifndef ELFLOADER_H_
 #define ELFLOADER_H_
 
-//#include "cfs/cfs.h"
+#include <stdint.h>
 
 /**
  * Return value from elfloader_load() indicating that loading worked.
@@ -171,16 +171,16 @@ extern char elfloader_unknown[30];
 #endif
 #endif /* ELFLOADER_TEXTMEMORY_SIZE */
 
-typedef unsigned long  elf32_word;
-typedef   signed long  elf32_sword;
-typedef unsigned short elf32_half;
-typedef unsigned long  elf32_off;
-typedef unsigned long  elf32_addr;
+typedef uint32_t elf32_word;
+typedef int32_t  elf32_sword;
+typedef uint16_t elf32_half;
+typedef uint32_t elf32_off;
+typedef uint32_t elf32_addr;
 
 struct elf32_rela {
-  elf32_addr      r_offset;       /* Location to be relocated. */
-  elf32_word      r_info;         /* Relocation type and symbol index. */
-  elf32_sword     r_addend;       /* Addend. */
+	elf32_addr      r_offset;       /* Location to be relocated. */
+	elf32_word      r_info;         /* Relocation type and symbol index. */
+	elf32_sword     r_addend;       /* Addend. */
 };
 
 
