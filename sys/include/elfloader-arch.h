@@ -68,35 +68,6 @@
 #include "elfloader.h"
 
 /**
- * \brief      Allocate RAM for a new module.
- * \param size The size of the requested memory.
- * \return     A pointer to the allocated RAM
- *
- *             This function is called from the Contiki ELF loader to
- *             allocate RAM for the module to be loaded into.
- *
- * \bug        The Contiki ELF loader currently does not contain a
- *             mechanism for deallocating the memory allocated with
- *             this function.
- */
-void *elfloader_arch_allocate_ram(int size);
-
-/**
- * \brief      Allocate program memory for a new module.
- * \param size The size of the requested memory.
- * \return     A pointer to the allocated program memory
- *
- *             This function is called from the Contiki ELF loader to
- *             allocate program memory (typically ROM) for the module
- *             to be loaded into.
- *
- * \bug        The Contiki ELF loader currently does not contain a
- *             mechanism for deallocating the memory allocated with
- *             this function.
- */
-void *elfloader_arch_allocate_rom(int size);
-
-/**
  * \brief      Perform a relocation.
  * \param fd   The file descriptor for the ELF file.
  * \param sectionoffset The file offset at which the relocation can be found.
@@ -119,19 +90,6 @@ void elfloader_arch_relocate(void * fd, unsigned int sectionoffset,
 			     char *sectionaddr,
 			     struct elf32_rela *rela, char *addr);
 
-/**
- * \brief      Write to read-only memory (for example the text segment).
- * \param fd   The file descriptor for the ELF file.
- * \param textoff	Offset of text segment relative start of file.
- * \param size The size of the text segment.
- * \param mem  A pointer to the where the text segment should be flashed
- *
- *             This function is called from the Contiki ELF loader to
- *             write the program code (text segment) of a loaded
- *             module into memory. The function is called when all
- *             relocations have been performed.
- */
-void elfloader_arch_write_rom(void * fd, unsigned short textoff, unsigned int size, char *mem);
 
 #endif /* ELFLOADER_ARCH_H_ */
 

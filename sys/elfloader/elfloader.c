@@ -120,8 +120,7 @@ struct elf32_sym {
   elf32_half	  st_shndx;		  /* Section index of symbol. */
 };
 
-#define ELF32_R_SYM(info)		((info) >> 8)
-#define ELF32_R_TYPE(info)		((unsigned char)(info))
+#define ELF32_R_SYM(info)       ((info) >> 8)
 
 struct relevant_section {
   unsigned char number;
@@ -142,21 +141,13 @@ static const unsigned char elf_magic_header[] =
    0x01,					/* Only ELF version 1. */
   };
 
+
 /*---------------------------------------------------------------------------*/
 static char * seek_read(void * loc, size_t offset, char * destination, size_t size) {
 	memcpy ( (void *)(destination), (void *)(loc + offset), size );
 	return destination;
 }
 
-/*---------------------------------------------------------------------------*/
-/*
-static void
-seek_write(int fd, unsigned int offset, char *buf, int len)
-{
-  cfs_seek(fd, offset, CFS_SEEK_SET);
-  cfs_write(fd, buf, len);
-}
-*/
 /*---------------------------------------------------------------------------*/
 static void *
 find_local_symbol(void * fd, const char *symbol,
@@ -298,274 +289,251 @@ find_program_processes(void * fd,
   return NULL;
 /*	 return find_local_symbol(fd, "autostart_processes", symtab, size, strtab); */
 }
-
 /*---------------------------------------------------------------------------*/
-#if 0
-static void
-print_chars(unsigned char *ptr, int num)
-{
-  int i;
-  for(i = 0; i < num; ++i) {
-	PRINTF("%d", ptr[i]);
-	if(i == num - 1) {
-	  PRINTF("\n");
-	} else {
-	  PRINTF(", ");
-	}
-  }
+
+int check_if_correct_elfheader(void const* ptr) {
+    static const unsigned char elf_magic_header[] =
+        {0x7f, 0x45, 0x4c, 0x46,  /* 0x7f, 'E', 'L', 'F' */
+         0x01,                    /* Only 32-bit objects. */
+         0x01,                    /* Only LSB data. */
+         0x01,                    /* Only ELF version 1. */
+        };
+
+    return memcmp(ptr, elf_magic_header, sizeof(elf_magic_header)) == 0;
 }
-#endif /* 0 */
+
+
 /*---------------------------------------------------------------------------*/
 int
-elfloader_load(void * fd, char * entry_point_name)
+elfloader_load(void * fd, const char * entry_point_name)
 {
-  struct elf32_ehdr ehdr;
-  struct elf32_shdr shdr;
-  struct elf32_shdr strtable;
-  unsigned int strs;
-  unsigned int shdrptr;
-  unsigned int nameptr;
-  char name[12];
-  
-  int i;
-  unsigned short shdrnum, shdrsize;
+    const struct elf32_ehdr* ehdr;
+    const struct elf32_shdr* strtable;
+    unsigned int strs;
 
-  unsigned char using_relas = -1;
-  unsigned short textoff = 0, textsize, textrelaoff = 0, textrelasize;
-  unsigned short dataoff = 0, datasize, datarelaoff = 0, datarelasize;
-  unsigned short rodataoff = 0, rodatasize, rodatarelaoff = 0, rodatarelasize;
-  unsigned short symtaboff = 0, symtabsize;
-  unsigned short strtaboff = 0, strtabsize;
-  unsigned short bsssize = 0;
+    unsigned short shdrnum, shdrsize;
 
-  struct process **process;
-  int ret;
+    unsigned char using_relas = -1;
 
-  elfloader_unknown[0] = 0;
+    /* Initialize the segment sizes to zero so that we can check if
+       their sections was found in the file or not. */
+    unsigned short textoff = 0, textsize = 0, textrelaoff = 0, textrelasize = 0;
+    unsigned short dataoff = 0, datasize = 0, datarelaoff = 0, datarelasize = 0;
+    unsigned short rodataoff = 0, rodatasize = 0, rodatarelaoff = 0, rodatarelasize = 0;
+    unsigned short symtaboff = 0, symtabsize = 0;
+    unsigned short strtaboff = 0, strtabsize = 0;
+    unsigned short bsssize = 0;
 
-  /* The ELF header is located at the start of the buffer. */
-  seek_read(fd, 0, (char *)&ehdr, sizeof(ehdr));
+    struct process **process;
+    int ret;
 
-  /*  print_chars(ehdr.e_ident, sizeof(elf_magic_header));
-	  print_chars(elf_magic_header, sizeof(elf_magic_header));*/
-  /* Make sure that we have a correct and compatible ELF header. */
-  if(memcmp(ehdr.e_ident, elf_magic_header, sizeof(elf_magic_header)) != 0) {
-	PRINTF("ELF header problems\n");
-	return ELFLOADER_BAD_ELF_HEADER;
-  }
+    elfloader_unknown[0] = 0;
 
-  /* Grab the section header. */
-  shdrptr = ehdr.e_shoff;
-  seek_read(fd, shdrptr, (char *)&shdr, sizeof(shdr));
-  
-  /* Get the size and number of entries of the section header. */
-  shdrsize = ehdr.e_shentsize;
-  shdrnum = ehdr.e_shnum;
+    /* The ELF header is located at the start of the buffer. */
+    ehdr = (struct elf32_ehdr*)fd;
 
-  PRINTF("Section header: size %d num %d\n", shdrsize, shdrnum);
-  
-  /* The string table section: holds the names of the sections. */
-  seek_read(fd, ehdr.e_shoff + shdrsize * ehdr.e_shstrndx,
-		(char *)&strtable, sizeof(strtable));
-
-  /* Get a pointer to the actual table of strings. This table holds
-	 the names of the sections, not the names of other symbols in the
-	 file (these are in the sybtam section). */
-  strs = strtable.sh_offset;
-
-  PRINTF("Strtable offset %d\n", strs);
-  
-  /* Go through all sections and pick out the relevant ones. The
-	 ".text" segment holds the actual code from the ELF file, the
-	 ".data" segment contains initialized data, the ".bss" segment
-	 holds the size of the unitialized data segment. The ".rel[a].text"
-	 and ".rel[a].data" segments contains relocation information for the
-	 contents of the ".text" and ".data" segments, respectively. The
-	 ".symtab" segment contains the symbol table for this file. The
-	 ".strtab" segment points to the actual string names used by the
-	 symbol table.
-
-	 In addition to grabbing pointers to the relevant sections, we
-	 also save the section number for resolving addresses in the
-	 relocator code.
-  */
+    /* Make sure that we have a correct and compatible ELF header. */
+    if (!check_if_correct_elfheader(ehdr->e_ident)) {
+        PRINTF("ELF header problems\n");
+        return ELFLOADER_BAD_ELF_HEADER;
+    }
 
 
-  /* Initialize the segment sizes to zero so that we can check if
-	 their sections was found in the file or not. */
-  textsize = textrelasize = datasize = datarelasize =
-	rodatasize = rodatarelasize = symtabsize = strtabsize = 0;
+    /* Get the size and number of entries of the section header. */
+    shdrsize = ehdr->e_shentsize;
+    shdrnum = ehdr->e_shnum;
 
-  bss.number = data.number = rodata.number = text.number = -1;
-		
-  shdrptr = ehdr.e_shoff;
-  for(i = 0; i < shdrnum; ++i) {
+    PRINTF("Section header: size %d num %d\n", shdrsize, shdrnum);
 
-	seek_read(fd, shdrptr, (char *)&shdr, sizeof(shdr));
-	
-	/* The name of the section is contained in the strings table. */
-	nameptr = strs + shdr.sh_name;
-	seek_read(fd, nameptr, name, sizeof(name));
-	PRINTF("Section shdrptr 0x%x, %d + %d type %d\n",
-	   shdrptr,
-	   strs, shdr.sh_name,
-	   (int)shdr.sh_type);
-	/* Match the name of the section with a predefined set of names
-	   (.text, .data, .bss, .rela.text, .rela.data, .symtab, and
-	   .strtab). */
-	/* added support for .rodata, .rel.text and .rel.data). */
+    /* The string table section: holds the names of the sections. */
+    strtable = fd + ehdr->e_shoff + shdrsize * ehdr->e_shstrndx;
 
-	if(shdr.sh_type == SHT_SYMTAB/*strncmp(name, ".symtab", 7) == 0*/) {
-	  PRINTF("symtab\n");
-	  symtaboff = shdr.sh_offset;
-	  symtabsize = shdr.sh_size;
-	} else if(shdr.sh_type == SHT_STRTAB/*strncmp(name, ".strtab", 7) == 0*/) {
-	  PRINTF("strtab\n");
-	  strtaboff = shdr.sh_offset;
-	  strtabsize = shdr.sh_size;
-	} else if(strncmp(name, ".text", 5) == 0) {
-	  textoff = shdr.sh_offset;
-	  textsize = shdr.sh_size;
-	  text.number = i;
-	  text.offset = textoff;
-	} else if(strncmp(name, ".rel.text", 9) == 0) {
-	  using_relas = 0;
-	  textrelaoff = shdr.sh_offset;
-	  textrelasize = shdr.sh_size;
-	} else if(strncmp(name, ".rela.text", 10) == 0) {
-	  using_relas = 1;
-	  textrelaoff = shdr.sh_offset;
-	  textrelasize = shdr.sh_size;
-	} else if(strncmp(name, ".data", 5) == 0) {
-	  dataoff = shdr.sh_offset;
-	  datasize = shdr.sh_size;
-	  data.number = i;
-	  data.offset = dataoff;
-	} else if(strncmp(name, ".rodata", 7) == 0) {
-	  /* read-only data handled the same way as regular text section */
-	  rodataoff = shdr.sh_offset;
-	  rodatasize = shdr.sh_size;
-	  rodata.number = i;
-	  rodata.offset = rodataoff;
-	} else if(strncmp(name, ".rel.rodata", 11) == 0) {
-	  /* using elf32_rel instead of rela */
-	  using_relas = 0;
-	  rodatarelaoff = shdr.sh_offset;
-	  rodatarelasize = shdr.sh_size;
-	} else if(strncmp(name, ".rela.rodata", 12) == 0) {
-	  using_relas = 1;
-	  rodatarelaoff = shdr.sh_offset;
-	  rodatarelasize = shdr.sh_size;
-	} else if(strncmp(name, ".rel.data", 9) == 0) {
-	  /* using elf32_rel instead of rela */
-	  using_relas = 0;
-	  datarelaoff = shdr.sh_offset;
-	  datarelasize = shdr.sh_size;
-	} else if(strncmp(name, ".rela.data", 10) == 0) {
-	  using_relas = 1;
-	  datarelaoff = shdr.sh_offset;
-	  datarelasize = shdr.sh_size;
-	} else if(strncmp(name, ".bss", 4) == 0) {
-	  bsssize = shdr.sh_size;
-	  bss.number = i;
-	  bss.offset = 0;
-	}
+    /* Get a pointer to the actual table of strings. This table holds
+       the names of the sections, not the names of other symbols in the
+       file (these are in the sybtam section). */
+    strs = strtable->sh_offset;
 
-	/* Move on to the next section header. */
-	shdrptr += shdrsize;
-  }
+    PRINTF("Strtable offset %d\n", strs);
 
-  if(symtabsize == 0) {
-	return ELFLOADER_NO_SYMTAB;
-  }
-  if(strtabsize == 0) {
-	return ELFLOADER_NO_STRTAB;
-  }
-  if(textsize == 0) {
-	return ELFLOADER_NO_TEXT;
-  }
+    /* Go through all sections and pick out the relevant ones. The
+       ".text" segment holds the actual code from the ELF file, the
+       ".data" segment contains initialized data, the ".bss" segment
+       holds the size of the unitialized data segment. The ".rel[a].text"
+       and ".rel[a].data" segments contains relocation information for the
+       contents of the ".text" and ".data" segments, respectively. The
+       ".symtab" segment contains the symbol table for this file. The
+       ".strtab" segment points to the actual string names used by the
+       symbol table.
 
-  PRINTF("before allocate ram\n");
-  bss.address = (char *)elfloader_arch_allocate_ram(bsssize + datasize);
-  data.address = (char *)bss.address + bsssize;
-  PRINTF("before allocate rom\n");
-  text.address = (char *)elfloader_arch_allocate_rom(textsize + rodatasize);
-  rodata.address = (char *)text.address + textsize;
-  
+       In addition to grabbing pointers to the relevant sections, we
+       also save the section number for resolving addresses in the
+       relocator code.
+    */
 
-  PRINTF("bss base address: bss.address = 0x%08x\n", bss.address);
-  PRINTF("data base address: data.address = 0x%08x\n", data.address);
-  PRINTF("text base address: text.address = 0x%08x\n", text.address);
-  PRINTF("rodata base address: rodata.address = 0x%08x\n", rodata.address);
+    bss.number = data.number = rodata.number = text.number = -1;
+
+    /* Grab the section header. */
+    const void* const shdrptr = fd + ehdr->e_shoff;
+
+    for(int i=0; i<shdrnum; ++i) {
+        struct elf32_shdr shdr;
+        memcpy(&shdr, shdrptr + shdrsize*i, sizeof(shdr));
+
+        /* The name of the section is contained in the strings table. */
+        const void const* nameptr = fd + strs + shdr.sh_name;
+
+        PRINTF("Section shdrptr 0x%x, %d + %d type %d\n",
+               shdrptr,
+               strs, shdr.sh_name,
+               (int)shdr.sh_type);
+        /* Match the name of the section with a predefined set of names
+           (.text, .data, .bss, .rela.text, .rela.data, .symtab, and
+           .strtab). */
+        /* added support for .rodata, .rel.text and .rel.data). */
+
+        if(shdr.sh_type == SHT_SYMTAB) {
+            PRINTF("symtab\n");
+            symtaboff = shdr.sh_offset;
+            symtabsize = shdr.sh_size;
+        } else if(shdr.sh_type == SHT_STRTAB) {
+            PRINTF("strtab\n");
+            strtaboff = shdr.sh_offset;
+            strtabsize = shdr.sh_size;
+        } else if(strcmp(nameptr, ".text") == 0) {
+            textoff = shdr.sh_offset;
+            textsize = shdr.sh_size;
+            text.number = i;
+            text.offset = textoff;
+        } else if(strcmp(nameptr, ".rel.text") == 0) {
+            using_relas = 0;
+            textrelaoff = shdr.sh_offset;
+            textrelasize = shdr.sh_size;
+        } else if(strcmp(nameptr, ".rela.text") == 0) {
+            using_relas = 1;
+            textrelaoff = shdr.sh_offset;
+            textrelasize = shdr.sh_size;
+        } else if(strcmp(nameptr, ".data") == 0) {
+            dataoff = shdr.sh_offset;
+            datasize = shdr.sh_size;
+            data.number = i;
+            data.offset = dataoff;
+        } else if(strcmp(nameptr, ".rodata") == 0) {
+            /* read-only data handled the same way as regular text section */
+            rodataoff = shdr.sh_offset;
+            rodatasize = shdr.sh_size;
+            rodata.number = i;
+            rodata.offset = rodataoff;
+        } else if(strcmp(nameptr, ".rel.rodata") == 0) {
+            /* using elf32_rel instead of rela */
+            using_relas = 0;
+            rodatarelaoff = shdr.sh_offset;
+            rodatarelasize = shdr.sh_size;
+        } else if(strcmp(nameptr, ".rela.rodata") == 0) {
+            using_relas = 1;
+            rodatarelaoff = shdr.sh_offset;
+            rodatarelasize = shdr.sh_size;
+        } else if(strcmp(nameptr, ".rel.data") == 0) {
+            /* using elf32_rel instead of rela */
+            using_relas = 0;
+            datarelaoff = shdr.sh_offset;
+            datarelasize = shdr.sh_size;
+        } else if(strcmp(nameptr, ".rela.data") == 0) {
+            using_relas = 1;
+            datarelaoff = shdr.sh_offset;
+            datarelasize = shdr.sh_size;
+        } else if(strcmp(nameptr, ".bss") == 0) {
+            bsssize = shdr.sh_size;
+            bss.number = i;
+            bss.offset = 0;
+        }
+    }
+
+    if(symtabsize == 0) {
+        return ELFLOADER_NO_SYMTAB;
+    }
+    if(strtabsize == 0) {
+        return ELFLOADER_NO_STRTAB;
+    }
+    if(textsize == 0) {
+        return ELFLOADER_NO_TEXT;
+    }
+
+    PRINTF("before allocate ram\n");
+	bss.address = (char*)malloc(bsssize + datasize);
+    data.address = bss.address + bsssize;
+    PRINTF("before allocate rom\n");
+	text.address = fd + textoff;
+	rodata.address = fd + rodataoff;
+
+    PRINTF("bss base address: bss.address = 0x%08x\n", bss.address);
+    PRINTF("data base address: data.address = 0x%08x\n", data.address);
+    PRINTF("text base address: text.address = 0x%08x\n", text.address);
+    PRINTF("rodata base address: rodata.address = 0x%08x\n", rodata.address);
 
 
-  /* If we have text segment relocations, we process them. */
-  PRINTF("elfloader: relocate text\n");
-  if(textrelasize > 0) {
-		ret = relocate_section(fd,
-			   textrelaoff, textrelasize,
-			   textoff,
-			   text.address,
-			   strs,
-			   strtaboff,
-			   symtaboff, symtabsize, using_relas);
-	if(ret != ELFLOADER_OK) {
-	  return ret;
-	}
-  }
+    /* If we have text segment relocations, we process them. */
+    PRINTF("elfloader: relocate text\n");
+    if(textrelasize > 0) {
+        ret = relocate_section(fd,
+                               textrelaoff, textrelasize,
+                               textoff,
+                               text.address,
+                               strs,
+                               strtaboff,
+                               symtaboff, symtabsize, using_relas);
+        if(ret != ELFLOADER_OK) {
+            return ret;
+        }
+    }
 
-  /* If we have any rodata segment relocations, we process them too. */
-  PRINTF("elfloader: relocate rodata\n");
-  if(rodatarelasize > 0) {
-	ret = relocate_section(fd,
-			   rodatarelaoff, rodatarelasize,
-			   rodataoff,
-			   rodata.address,
-			   strs,
-			   strtaboff,
-			   symtaboff, symtabsize, using_relas);
-	if(ret != ELFLOADER_OK) {
-	  PRINTF("elfloader: data failed\n");
-	  return ret;
-	}
-  }
+    /* If we have any rodata segment relocations, we process them too. */
+    PRINTF("elfloader: relocate rodata\n");
+    if(rodatarelasize > 0) {
+        ret = relocate_section(fd,
+                               rodatarelaoff, rodatarelasize,
+                               rodataoff,
+                               rodata.address,
+                               strs,
+                               strtaboff,
+                               symtaboff, symtabsize, using_relas);
+        if(ret != ELFLOADER_OK) {
+            PRINTF("elfloader: data failed\n");
+            return ret;
+        }
+    }
 
-  /* If we have any data segment relocations, we process them too. */
-  PRINTF("elfloader: relocate data\n");
-  if(datarelasize > 0) {
-	ret = relocate_section(fd,
-			   datarelaoff, datarelasize,
-			   dataoff,
-			   data.address,
-			   strs,
-			   strtaboff,
-			   symtaboff, symtabsize, using_relas);
-	if(ret != ELFLOADER_OK) {
-	  PRINTF("elfloader: data failed\n");
-	  return ret;
-	}
-  }
+    /* If we have any data segment relocations, we process them too. */
+    PRINTF("elfloader: relocate data\n");
+    if(datarelasize > 0) {
+        ret = relocate_section(fd,
+                               datarelaoff, datarelasize,
+                               dataoff,
+                               data.address,
+                               strs,
+                               strtaboff,
+                               symtaboff, symtabsize, using_relas);
+        if(ret != ELFLOADER_OK) {
+            PRINTF("elfloader: data failed\n");
+            return ret;
+        }
+    }
 
-  /* Write text and rodata segment into flash and data segment into RAM. */
-  elfloader_arch_write_rom(fd, textoff, textsize, text.address);
-  elfloader_arch_write_rom(fd, rodataoff, rodatasize, rodata.address);
-  
-  memset(bss.address, 0, bsssize);
-  seek_read(fd, dataoff, data.address, datasize);
+    memset(bss.address, 0, bsssize);
+    seek_read(fd, dataoff, data.address, datasize);
 
-  PRINTF("elfloader: autostart search\n");
-  process = (struct process **) find_local_symbol(fd, entry_point_name, symtaboff, symtabsize, strtaboff);
-  if(process != NULL) {
-	PRINTF("elfloader: autostart found\n");
-	elfloader_autostart_processes = process;
-	return ELFLOADER_OK;
-  } else {
-	PRINTF("elfloader: no autostart\n");
-	process = (struct process **) find_program_processes(fd, symtaboff, symtabsize, strtaboff);
-	if(process != NULL) {
-	  PRINTF("elfloader: FOUND PRG\n");
-	}
-	return ELFLOADER_NO_STARTPOINT;
-  }
+    PRINTF("elfloader: autostart search\n");
+    process = (struct process **) find_local_symbol(fd, entry_point_name, symtaboff, symtabsize, strtaboff);
+    if(process != NULL) {
+        PRINTF("elfloader: autostart found\n");
+        elfloader_autostart_processes = process;
+        return ELFLOADER_OK;
+    } else {
+        PRINTF("elfloader: no autostart\n");
+        process = (struct process **) find_program_processes(fd, symtaboff, symtabsize, strtaboff);
+        if(process != NULL) {
+            PRINTF("elfloader: FOUND PRG\n");
+        }
+        return ELFLOADER_NO_STARTPOINT;
+    }
 }
 /*---------------------------------------------------------------------------*/

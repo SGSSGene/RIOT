@@ -34,34 +34,6 @@
 #include <string.h>
 #include "elfloader-arch.h"
 
-
-#define ELFLOADER_DATAMEMORY_SIZE 0x100
-
-static uint16_t datamemory_aligned[ELFLOADER_DATAMEMORY_SIZE/2+1];
-static uint8_t *datamemory = (uint8_t *)datamemory_aligned;
-#if ELFLOADER_CONF_TEXT_IN_ROM
-static const char textmemory[ELFLOADER_TEXTMEMORY_SIZE] = {0};
-#else /* ELFLOADER_CONF_TEXT_IN_ROM */
-static char textmemory[ELFLOADER_TEXTMEMORY_SIZE];
-#endif /* ELFLOADER_CONF_TEXT_IN_ROM */
-/*---------------------------------------------------------------------------*/
-void *
-elfloader_arch_allocate_ram(int size)
-{
-  return datamemory;
-}
-/*---------------------------------------------------------------------------*/
-void *
-elfloader_arch_allocate_rom(int size)
-{
-  return textmemory;
-}
-/*---------------------------------------------------------------------------*/
-void
-elfloader_arch_write_rom(void * fd, unsigned short textoff, unsigned int size, char *mem)
-{
-  memcpy(mem, fd + textoff, size);
-}
 /*---------------------------------------------------------------------------*/
 void
 elfloader_arch_relocate(void * fd, unsigned int sectionoffset,
