@@ -448,6 +448,7 @@ elfloader_load(void * fd, const char * entry_point_name)
         }
     }
 
+    /* Error checking, symbol table, string table and text (code) should be available */
     if(symtabsize == 0) {
         return ELFLOADER_NO_SYMTAB;
     }
@@ -519,7 +520,7 @@ elfloader_load(void * fd, const char * entry_point_name)
     }
 
     memset(bss.address, 0, bsssize);
-    seek_read(fd, dataoff, data.address, datasize);
+    memcpy(fd+dataoff, data.address, datasize);
 
     PRINTF("elfloader: autostart search\n");
     process = (struct process **) find_local_symbol(fd, entry_point_name, symtaboff, symtabsize, strtaboff);
