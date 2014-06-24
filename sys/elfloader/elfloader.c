@@ -265,19 +265,16 @@ int
 elfloader_load(void * fd, const char * entry_point_name)
 {
     const elf32_shdr_t* strtable;
-    unsigned int strs;
-
-    unsigned short shdrnum, shdrsize;
 
     unsigned char using_relas = -1;
 
     /* Initialize the segment sizes to zero so that we can check if
        their sections was found in the file or not. */
-    unsigned short textrelaoff = 0, textrelasize = 0;
-    unsigned short datarelaoff = 0, datarelasize = 0;
-    unsigned short rodatarelaoff = 0, rodatarelasize = 0;
-    unsigned short symtaboff = 0, symtabsize = 0;
-    unsigned short strtaboff = 0, strtabsize = 0;
+	const elf32_shdr_t* textrela   = NULL;
+	const elf32_shdr_t* datarela   = NULL;
+	const elf32_shdr_t* rodatarela = NULL;
+	const elf32_shdr_t* symtab     = NULL;
+	const elf32_shdr_t* strtab     = NULL;
 
     struct process **process;
 
@@ -293,21 +290,12 @@ elfloader_load(void * fd, const char * entry_point_name)
     }
 
 
-    /* Get the size and number of entries of the section header. */
-    shdrsize = ehdr->shentsize;
-    shdrnum = ehdr->shnum;
-
-    PRINTF("Section header: size %d num %d\n", shdrsize, shdrnum);
+    PRINTF("Section header: size %d num %d\n", ehdr->shentsize, ehdr->shnum);
 
     /* The string table section: holds the names of the sections. */
-    strtable = fd + ehdr->shoff + shdrsize * ehdr->shstrndx;
+    strtable = fd + ehdr->shoff + ehdr->shentsize * ehdr->shstrndx;
 
-    /* Get a pointer to the actual table of strings. This table holds
-       the names of the sections, not the names of other symbols in the
-       file (these are in the sybtam section). */
-    strs = strtable->offset;
-
-    PRINTF("Strtable offset %d\n", strs);
+    PRINTF("Strtable offset %d\n", strtable->offset);
 
     /* Go through all sections and pick out the relevant ones. The
        ".text" segment holds the actual code from the ELF file, the
@@ -327,83 +315,72 @@ elfloader_load(void * fd, const char * entry_point_name)
     bss.number = data.number = rodata.number = text.number = -1;
 
     /* Grab the section header. */
-    const void* const shdrptr = fd + ehdr->shoff;
+    const void* shdrptr = fd + ehdr->shoff;
 
-    for(int i=0; i<shdrnum; ++i) {
-        elf32_shdr_t shdr;
-        memcpy(&shdr, shdrptr + shdrsize*i, sizeof(shdr));
+    for(int i=0; i<ehdr->shnum; ++i) {
+		const elf32_shdr_t* shdr = shdrptr + ehdr->shentsize*i;
 
         /* The name of the section is contained in the strings table. */
-        const void const* nameptr = fd + strs + shdr.name;
+        const void const* nameptr = fd + strtable->offset + shdr->name;
 
         PRINTF("Section shdrptr 0x%x, %d + %d type %d\n",
                shdrptr,
-               strs, shdr.name,
-               (int)shdr.type);
+               strtable->offset, shdr->name,
+               (int)shdr->type);
         /* Match the name of the section with a predefined set of names
            (.text, .data, .bss, .rela.text, .rela.data, .symtab, and
            .strtab). */
         /* added support for .rodata, .rel.text and .rel.data). */
 
-        if(shdr.type == SHT_SYMTAB) {
-            PRINTF("symtab\n");
-            symtaboff = shdr.offset;
-            symtabsize = shdr.size;
-        } else if(shdr.type == SHT_STRTAB) {
-            PRINTF("strtab\n");
-            strtaboff = shdr.offset;
-            strtabsize = shdr.size;
+		if (strncmp(nameptr, ".rela", 5) == 0) {
+			using_relas = 1;
+		} else if (strncmp(nameptr, ".rel", 4) == 0) {
+			using_relas = 0;
+		}
+
+        if(shdr->type == SHT_SYMTAB) {
+			symtab = shdr;
+        } else if(shdr->type == SHT_STRTAB) {
+			strtab = shdr;
         } else if(strcmp(nameptr, ".text") == 0) {
             text.number = i;
-            text.offset = shdr.offset;
-			text.size   = shdr.size;
+            text.offset = shdr->offset;
+			text.size   = shdr->size;
         } else if(strcmp(nameptr, ".rel.text") == 0) {
-            using_relas = 0;
-            textrelaoff = shdr.offset;
-            textrelasize = shdr.size;
+			textrela = shdr;
         } else if(strcmp(nameptr, ".rela.text") == 0) {
-            using_relas = 1;
-            textrelaoff = shdr.offset;
-            textrelasize = shdr.size;
+			textrela = shdr;
         } else if(strcmp(nameptr, ".data") == 0) {
             data.number = i;
-            data.offset = shdr.offset;
-			data.size   = shdr.size;
+            data.offset = shdr->offset;
+			data.size   = shdr->size;
         } else if(strcmp(nameptr, ".rodata") == 0) {
             /* read-only data handled the same way as regular text section */
             rodata.number = i;
-            rodata.offset = shdr.offset;
-			rodata.size   = shdr.size;
+            rodata.offset = shdr->offset;
+			rodata.size   = shdr->size;
         } else if(strcmp(nameptr, ".rel.rodata") == 0) {
             /* using elf32_rel instead of rela */
-            using_relas = 0;
-            rodatarelaoff = shdr.offset;
-            rodatarelasize = shdr.size;
+			rodatarela = shdr;
         } else if(strcmp(nameptr, ".rela.rodata") == 0) {
-            using_relas = 1;
-            rodatarelaoff = shdr.offset;
-            rodatarelasize = shdr.size;
+			rodatarela = shdr;
         } else if(strcmp(nameptr, ".rel.data") == 0) {
             /* using elf32_rel instead of rela */
-            using_relas = 0;
-            datarelaoff = shdr.offset;
-            datarelasize = shdr.size;
+			datarela = shdr;
         } else if(strcmp(nameptr, ".rela.data") == 0) {
-            using_relas = 1;
-            datarelaoff = shdr.offset;
-            datarelasize = shdr.size;
+			datarela = shdr;
         } else if(strcmp(nameptr, ".bss") == 0) {
             bss.number = i;
             bss.offset = 0;
-			bss.size   = shdr.size;
+			bss.size   = shdr->size;
         }
     }
 
     /* Error checking, symbol table, string table and text (code) should be available */
-    if(symtabsize == 0) {
+    if(symtab == NULL || symtab->size == 0) {
         return ELFLOADER_NO_SYMTAB;
     }
-    if(strtabsize == 0) {
+    if(strtab == NULL || strtab->size == 0) {
         return ELFLOADER_NO_STRTAB;
     }
     if(text.size == 0) {
@@ -425,13 +402,12 @@ elfloader_load(void * fd, const char * entry_point_name)
 
     /* If we have text segment relocations, we process them. */
     PRINTF("elfloader: relocate text\n");
-    if(textrelasize > 0) {
+    if(textrela != NULL) {
         int ret = relocate_section(fd,
-                               textrelaoff, textrelasize,
-                               text.offset,
-                               text.address,
-                               strtaboff,
-                               symtaboff, symtabsize, using_relas);
+                               textrela->offset, textrela->size,
+                               text.offset,      text.address,
+                               strtab->offset,
+                               symtab->offset, symtab->size, using_relas);
         if(ret != ELFLOADER_OK) {
             return ret;
         }
@@ -439,13 +415,12 @@ elfloader_load(void * fd, const char * entry_point_name)
 
     /* If we have any rodata segment relocations, we process them too. */
     PRINTF("elfloader: relocate rodata\n");
-    if(rodatarelasize > 0) {
+    if(rodatarela != NULL) {
         int ret = relocate_section(fd,
-                               rodatarelaoff, rodatarelasize,
-                               rodata.offset,
-                               rodata.address,
-                               strtaboff,
-                               symtaboff, symtabsize, using_relas);
+                               rodatarela->offset, rodatarela->size,
+                               rodata.offset,      rodata.address,
+                               strtab->offset,
+                               symtab->offset, symtab->size, using_relas);
         if(ret != ELFLOADER_OK) {
             PRINTF("elfloader: data failed\n");
             return ret;
@@ -454,13 +429,12 @@ elfloader_load(void * fd, const char * entry_point_name)
 
     /* If we have any data segment relocations, we process them too. */
     PRINTF("elfloader: relocate data\n");
-    if(datarelasize > 0) {
+    if(datarela != NULL) {
         int ret = relocate_section(fd,
-                               datarelaoff, datarelasize,
-                               data.offset,
-                               data.address,
-                               strtaboff,
-                               symtaboff, symtabsize, using_relas);
+                               datarela->offset, datarela->size,
+                               data.offset,      data.address,
+                               strtab->offset,
+                               symtab->offset, symtab->size, using_relas);
         if(ret != ELFLOADER_OK) {
             PRINTF("elfloader: data failed\n");
             return ret;
@@ -471,7 +445,7 @@ elfloader_load(void * fd, const char * entry_point_name)
     memcpy(fd+data.offset, data.address, data.size);
 
     PRINTF("elfloader: autostart search\n");
-    process = (struct process **) find_local_symbol(fd, entry_point_name, symtaboff, symtabsize, strtaboff);
+    process = (struct process **) find_local_symbol(fd, entry_point_name, symtab->offset, symtab->size, strtab->offset);
     if(process != NULL) {
         PRINTF("elfloader: autostart found\n");
         elfloader_autostart_processes = process;
