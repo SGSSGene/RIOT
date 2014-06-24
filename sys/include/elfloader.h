@@ -161,11 +161,11 @@ typedef uint16_t elf32_half;
 typedef uint32_t elf32_off;
 typedef uint32_t elf32_addr;
 
-struct elf32_rela {
-	elf32_addr      r_offset;       /* Location to be relocated. */
-	elf32_word      r_info;         /* Relocation type and symbol index. */
-	elf32_sword     r_addend;       /* Addend. */
-};
+typedef struct elf32_rela {
+	elf32_addr      offset;       /* Location to be relocated. */
+	elf32_word      info;         /* Relocation type and symbol index. */
+	elf32_sword     addend;       /* Addend. */
+} elf32_rela_t;
 
 
 #endif /* ELFLOADER_H_ */
