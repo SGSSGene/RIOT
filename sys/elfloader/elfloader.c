@@ -208,6 +208,7 @@ relocate_section(void * fd,
 	PRINTF("found address %p\n", addr);
 	  }
 	  if(addr == NULL) {
+	  	// This doesn't look save
 		relevant_section_t* sect = findSectionById(s.shndx);
 		if (sect == NULL) {
 		  PRINTF("elfloader unknown name: '%30s'\n", name);
