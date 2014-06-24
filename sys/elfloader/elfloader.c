@@ -120,6 +120,7 @@ typedef struct relevant_section {
   unsigned char number;
   unsigned int offset;
   char *address;
+  unsigned short size;
 } relevant_section_t;
 
 char elfloader_unknown[30];	/* Name that caused link error. */
@@ -162,18 +163,15 @@ find_local_symbol(void * fd, const char *symbol,
 		  unsigned int symtab, unsigned short symtabsize,
 		  unsigned int strtab)
 {
-	elf32_sym_t s;
-	unsigned int a;
 	void* retAddr = NULL;
 
-	for(a = symtab; a < symtab + symtabsize; a += sizeof(s)) {
-		seek_read(fd, a, (char *)&s, sizeof(s));
-		if(s.name != 0) {
-			const char* name = fd + strtab + s.name;
+	for(const elf32_sym_t* s = fd+symtab; s < fd+symtab + symtabsize; ++s) {
+		if(s->name != 0) {
+			const char* name = fd + strtab + s->name;
 			if(strcmp(name, symbol) == 0) {
-				relevant_section_t* sect = findSectionById(s.shndx);
+				relevant_section_t* sect = findSectionById(s->shndx);
 				if (sect != NULL) {
-					retAddr = &(sect->address[s.value]);
+					retAddr = &(sect->address[s->value]);
 				}
 				break;
 			}
@@ -266,7 +264,6 @@ int check_if_correct_elfheader(void const* ptr) {
 int
 elfloader_load(void * fd, const char * entry_point_name)
 {
-    const elf32_ehdr_t* ehdr;
     const elf32_shdr_t* strtable;
     unsigned int strs;
 
@@ -276,19 +273,18 @@ elfloader_load(void * fd, const char * entry_point_name)
 
     /* Initialize the segment sizes to zero so that we can check if
        their sections was found in the file or not. */
-    unsigned short textoff = 0, textsize = 0, textrelaoff = 0, textrelasize = 0;
-    unsigned short dataoff = 0, datasize = 0, datarelaoff = 0, datarelasize = 0;
-    unsigned short rodataoff = 0, rodatasize = 0, rodatarelaoff = 0, rodatarelasize = 0;
+    unsigned short textrelaoff = 0, textrelasize = 0;
+    unsigned short datarelaoff = 0, datarelasize = 0;
+    unsigned short rodatarelaoff = 0, rodatarelasize = 0;
     unsigned short symtaboff = 0, symtabsize = 0;
     unsigned short strtaboff = 0, strtabsize = 0;
-    unsigned short bsssize = 0;
 
     struct process **process;
 
-    elfloader_unknown[0] = 0;
-
     /* The ELF header is located at the start of the buffer. */
-    ehdr = (const elf32_ehdr_t*)fd;
+    const elf32_ehdr_t* ehdr = (const elf32_ehdr_t*)fd;
+
+    elfloader_unknown[0] = 0;
 
     /* Make sure that we have a correct and compatible ELF header. */
     if (!check_if_correct_elfheader(ehdr->ident)) {
@@ -358,10 +354,9 @@ elfloader_load(void * fd, const char * entry_point_name)
             strtaboff = shdr.offset;
             strtabsize = shdr.size;
         } else if(strcmp(nameptr, ".text") == 0) {
-            textoff = shdr.offset;
-            textsize = shdr.size;
             text.number = i;
-            text.offset = textoff;
+            text.offset = shdr.offset;
+			text.size   = shdr.size;
         } else if(strcmp(nameptr, ".rel.text") == 0) {
             using_relas = 0;
             textrelaoff = shdr.offset;
@@ -371,16 +366,14 @@ elfloader_load(void * fd, const char * entry_point_name)
             textrelaoff = shdr.offset;
             textrelasize = shdr.size;
         } else if(strcmp(nameptr, ".data") == 0) {
-            dataoff = shdr.offset;
-            datasize = shdr.size;
             data.number = i;
-            data.offset = dataoff;
+            data.offset = shdr.offset;
+			data.size   = shdr.size;
         } else if(strcmp(nameptr, ".rodata") == 0) {
             /* read-only data handled the same way as regular text section */
-            rodataoff = shdr.offset;
-            rodatasize = shdr.size;
             rodata.number = i;
-            rodata.offset = rodataoff;
+            rodata.offset = shdr.offset;
+			rodata.size   = shdr.size;
         } else if(strcmp(nameptr, ".rel.rodata") == 0) {
             /* using elf32_rel instead of rela */
             using_relas = 0;
@@ -400,9 +393,9 @@ elfloader_load(void * fd, const char * entry_point_name)
             datarelaoff = shdr.offset;
             datarelasize = shdr.size;
         } else if(strcmp(nameptr, ".bss") == 0) {
-            bsssize = shdr.size;
             bss.number = i;
             bss.offset = 0;
+			bss.size   = shdr.size;
         }
     }
 
@@ -413,16 +406,16 @@ elfloader_load(void * fd, const char * entry_point_name)
     if(strtabsize == 0) {
         return ELFLOADER_NO_STRTAB;
     }
-    if(textsize == 0) {
+    if(text.size == 0) {
         return ELFLOADER_NO_TEXT;
     }
 
     PRINTF("before allocate ram\n");
-	bss.address = (char*)malloc(bsssize + datasize);
-    data.address = bss.address + bsssize;
+	bss.address = (char*)malloc(bss.size + data.size);
+    data.address = bss.address + bss.size;
     PRINTF("before allocate rom\n");
-	text.address = fd + textoff;
-	rodata.address = fd + rodataoff;
+	text.address = fd + text.offset;
+	rodata.address = fd + rodata.offset;
 
     PRINTF("bss base address: bss.address = 0x%08x\n", bss.address);
     PRINTF("data base address: data.address = 0x%08x\n", data.address);
@@ -435,7 +428,7 @@ elfloader_load(void * fd, const char * entry_point_name)
     if(textrelasize > 0) {
         int ret = relocate_section(fd,
                                textrelaoff, textrelasize,
-                               textoff,
+                               text.offset,
                                text.address,
                                strtaboff,
                                symtaboff, symtabsize, using_relas);
@@ -449,7 +442,7 @@ elfloader_load(void * fd, const char * entry_point_name)
     if(rodatarelasize > 0) {
         int ret = relocate_section(fd,
                                rodatarelaoff, rodatarelasize,
-                               rodataoff,
+                               rodata.offset,
                                rodata.address,
                                strtaboff,
                                symtaboff, symtabsize, using_relas);
@@ -464,7 +457,7 @@ elfloader_load(void * fd, const char * entry_point_name)
     if(datarelasize > 0) {
         int ret = relocate_section(fd,
                                datarelaoff, datarelasize,
-                               dataoff,
+                               data.offset,
                                data.address,
                                strtaboff,
                                symtaboff, symtabsize, using_relas);
@@ -474,8 +467,8 @@ elfloader_load(void * fd, const char * entry_point_name)
         }
     }
 
-    memset(bss.address, 0, bsssize);
-    memcpy(fd+dataoff, data.address, datasize);
+    memset(bss.address, 0, bss.size);
+    memcpy(fd+data.offset, data.address, data.size);
 
     PRINTF("elfloader: autostart search\n");
     process = (struct process **) find_local_symbol(fd, entry_point_name, symtaboff, symtabsize, strtaboff);
