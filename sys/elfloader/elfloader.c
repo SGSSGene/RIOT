@@ -182,12 +182,11 @@ find_local_symbol(void * fd, const char *symbol,
 /*---------------------------------------------------------------------------*/
 static int
 relocate_section(void * fd,
-                 unsigned int section, unsigned short size,
-                 unsigned int sectionaddr,
-                 char *sectionbase,
-                 unsigned int strtab,
-                 unsigned int symtab, unsigned short symtabsize,
-                 unsigned char using_relas)
+				 const elf32_shdr_t* section,
+				 const relevant_section_t* sectionAddr,
+				 const elf32_shdr_t* strtab,
+				 const elf32_shdr_t* symtab,
+				 unsigned char using_relas)
 {
   /* sectionbase added; runtime start address of current section */
   elf32_rela_t rela; /* Now used both for rel and rela data! */
@@ -203,18 +202,18 @@ relocate_section(void * fd,
 	rel_size = sizeof(elf32_rel_t);
   }
   
-  for(a = section; a < section + size; a += rel_size) {
+  for(a = section->offset; a < section->offset + section->size; a += rel_size) {
 	seek_read(fd, a, (char *)&rela, rel_size);
 	seek_read(fd,
-		  symtab + sizeof(elf32_sym_t) * ELF32_R_SYM(rela.info),
+		  symtab->offset + sizeof(elf32_sym_t) * ELF32_R_SYM(rela.info),
 		  (char *)&s, sizeof(s));
 	if(s.name != 0) {
-	  const char* name = fd + strtab + s.name;
+	  const char* name = fd + strtab->offset + s.name;
 	  addr = (char *)symtab_lookup(name);
 	  /* ADDED */
 	  if(addr == NULL) {
 	PRINTF("name not found in global: %s\n", name);
-	addr = find_local_symbol(fd, name, symtab, symtabsize, strtab);
+	addr = find_local_symbol(fd, name, symtab->offset, symtab->size, strtab->offset);
 	PRINTF("found address %p\n", addr);
 	  }
 	  if(addr == NULL) {
@@ -238,10 +237,10 @@ relocate_section(void * fd,
 
 	if(!using_relas) {
 	  /* copy addend to rela structure */
-	  seek_read(fd, sectionaddr + rela.offset, (char *)&rela.addend, 4);
+	  seek_read(fd, sectionAddr->offset + rela.offset, (char *)&rela.addend, 4);
 	}
 
-	elfloader_arch_relocate(fd, sectionaddr, sectionbase, &rela, addr);
+	elfloader_arch_relocate(fd, sectionAddr->offset, sectionAddr->address, &rela, addr);
   }
   return ELFLOADER_OK;
 }
@@ -403,11 +402,7 @@ elfloader_load(void * fd, const char * entry_point_name)
     /* If we have text segment relocations, we process them. */
     PRINTF("elfloader: relocate text\n");
     if(textrela != NULL) {
-        int ret = relocate_section(fd,
-                               textrela->offset, textrela->size,
-                               text.offset,      text.address,
-                               strtab->offset,
-                               symtab->offset, symtab->size, using_relas);
+        int ret = relocate_section(fd, textrela, &text, strtab, symtab, using_relas);
         if(ret != ELFLOADER_OK) {
             return ret;
         }
@@ -416,11 +411,7 @@ elfloader_load(void * fd, const char * entry_point_name)
     /* If we have any rodata segment relocations, we process them too. */
     PRINTF("elfloader: relocate rodata\n");
     if(rodatarela != NULL) {
-        int ret = relocate_section(fd,
-                               rodatarela->offset, rodatarela->size,
-                               rodata.offset,      rodata.address,
-                               strtab->offset,
-                               symtab->offset, symtab->size, using_relas);
+        int ret = relocate_section(fd, rodatarela, &rodata, strtab, symtab, using_relas);
         if(ret != ELFLOADER_OK) {
             PRINTF("elfloader: data failed\n");
             return ret;
@@ -430,11 +421,7 @@ elfloader_load(void * fd, const char * entry_point_name)
     /* If we have any data segment relocations, we process them too. */
     PRINTF("elfloader: relocate data\n");
     if(datarela != NULL) {
-        int ret = relocate_section(fd,
-                               datarela->offset, datarela->size,
-                               data.offset,      data.address,
-                               strtab->offset,
-                               symtab->offset, symtab->size, using_relas);
+        int ret = relocate_section(fd, datarela, &data, strtab, symtab, using_relas);
         if(ret != ELFLOADER_OK) {
             PRINTF("elfloader: data failed\n");
             return ret;
