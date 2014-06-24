@@ -38,14 +38,14 @@
 void
 elfloader_arch_relocate(void * fd, unsigned int sectionoffset,
 			char *sectionaddr,
-			struct elf32_rela *rela, char *addr)
+			elf32_rela_t* rela, char *addr)
 {
-  addr += rela->r_addend;
+  addr += rela->addend;
 
     // yes, really copy the value of addr, hence we need to pass the
     // address fo addr!
     //*((char **)(fd + sectionoffset + rel->offset)) = addr;
     //*((char *)(fd + sectionoffset + rela->r_offset)) = addr;
-	memcpy(fd + sectionoffset + rela->r_offset, &addr, 2);
+	memcpy(fd + sectionoffset + rela->offset, &addr, 2);
 }
 /*---------------------------------------------------------------------------*/
