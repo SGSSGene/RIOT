@@ -88,7 +88,7 @@
  */
 void elfloader_arch_relocate(void * fd, unsigned int sectionoffset,
 			     char *sectionaddr,
-			     elf32_rela_t* rela, char *addr);
+			     elf32_rela_t* rela, const char *addr);
 
 
 #endif /* ELFLOADER_ARCH_H_ */
