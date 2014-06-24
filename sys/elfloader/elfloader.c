@@ -265,29 +265,7 @@ relocate_section(void * fd,
   }
   return ELFLOADER_OK;
 }
-/*---------------------------------------------------------------------------*/
-static void *
-find_program_processes(void * fd,
-			   unsigned int symtab, unsigned short size,
-			   unsigned int strtab)
-{
-  struct elf32_sym s;
-  unsigned int a;
-  char name[30];
-  
-  for(a = symtab; a < symtab + size; a += sizeof(s)) {
-	seek_read(fd, a, (char *)&s, sizeof(s));
 
-	if(s.st_name != 0) {
-	  seek_read(fd, strtab + s.st_name, name, sizeof(name));
-	  if(strcmp(name, "autostart_processes") == 0) {
-	return &data.address[s.st_value];
-	  }
-	}
-  }
-  return NULL;
-/*	 return find_local_symbol(fd, "autostart_processes", symtab, size, strtab); */
-}
 /*---------------------------------------------------------------------------*/
 
 int check_if_correct_elfheader(void const* ptr) {
@@ -523,13 +501,6 @@ elfloader_load(void * fd, const char * entry_point_name)
         PRINTF("elfloader: autostart found\n");
         elfloader_autostart_processes = process;
         return ELFLOADER_OK;
-    } else {
-        PRINTF("elfloader: no autostart\n");
-        process = (struct process **) find_program_processes(fd, symtaboff, symtabsize, strtaboff);
-        if(process != NULL) {
-            PRINTF("elfloader: FOUND PRG\n");
-        }
-        return ELFLOADER_NO_STARTPOINT;
     }
 }
 /*---------------------------------------------------------------------------*/
