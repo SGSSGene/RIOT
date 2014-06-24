@@ -124,18 +124,9 @@ typedef struct relevant_section {
 } relevant_section_t;
 
 char elfloader_unknown[30];	/* Name that caused link error. */
-
-struct process * const * elfloader_autostart_processes = NULL;
+struct process * const * elfloader_autostart_process;
 
 static relevant_section_t bss, data, rodata, text;
-
-static const unsigned char elf_magic_header[] =
-  {0x7f, 0x45, 0x4c, 0x46,	/* 0x7f, 'E', 'L', 'F' */
-   0x01,					/* Only 32-bit objects. */
-   0x01,					/* Only LSB data. */
-   0x01,					/* Only ELF version 1. */
-  };
-
 
 /*---------------------------------------------------------------------------*/
 static char * seek_read(void * loc, size_t offset, char * destination, size_t size) {
@@ -160,14 +151,14 @@ relevant_section_t* findSectionById(elf32_half id) {
 /*---------------------------------------------------------------------------*/
 static void *
 find_local_symbol(void * fd, const char *symbol,
-		  unsigned int symtab, unsigned short symtabsize,
-		  unsigned int strtab)
+                  const elf32_shdr_t* symtab, const elf32_shdr_t* strtab)
+
 {
 	void* retAddr = NULL;
 
-	for(const elf32_sym_t* s = fd+symtab; s < fd+symtab + symtabsize; ++s) {
+	for(const elf32_sym_t* s = fd+symtab->offset; s < fd+symtab->offset + symtab->size; ++s) {
 		if(s->name != 0) {
-			const char* name = fd + strtab + s->name;
+			const char* name = fd + strtab->offset + s->name;
 			if(strcmp(name, symbol) == 0) {
 				relevant_section_t* sect = findSectionById(s->shndx);
 				if (sect != NULL) {
@@ -213,7 +204,7 @@ relocate_section(void * fd,
 	  /* ADDED */
 	  if(addr == NULL) {
 	PRINTF("name not found in global: %s\n", name);
-	addr = find_local_symbol(fd, name, symtab->offset, symtab->size, strtab->offset);
+	addr = find_local_symbol(fd, name, symtab, strtab);
 	PRINTF("found address %p\n", addr);
 	  }
 	  if(addr == NULL) {
@@ -274,8 +265,6 @@ elfloader_load(void * fd, const char * entry_point_name)
 	const elf32_shdr_t* rodatarela = NULL;
 	const elf32_shdr_t* symtab     = NULL;
 	const elf32_shdr_t* strtab     = NULL;
-
-    struct process **process;
 
     /* The ELF header is located at the start of the buffer. */
     const elf32_ehdr_t* ehdr = (const elf32_ehdr_t*)fd;
@@ -432,11 +421,10 @@ elfloader_load(void * fd, const char * entry_point_name)
     memcpy(fd+data.offset, data.address, data.size);
 
     PRINTF("elfloader: autostart search\n");
-    process = (struct process **) find_local_symbol(fd, entry_point_name, symtab->offset, symtab->size, strtab->offset);
-    if(process != NULL) {
-        PRINTF("elfloader: autostart found\n");
-        elfloader_autostart_processes = process;
-        return ELFLOADER_OK;
+    elfloader_autostart_process = (struct process **) find_local_symbol(fd, entry_point_name, symtab, strtab);
+    if(elfloader_autostart_process == NULL) {
+		return ELFLOADER_NO_STARTPOINT;
     }
+    return ELFLOADER_OK;
 }
 /*---------------------------------------------------------------------------*/

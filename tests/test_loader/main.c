@@ -35,11 +35,11 @@ int main(void)
 	// relocate object file at char * dyn_app
 	int entry = elfloader_load(dyn_app, "dyn_main");
 
-	printf("Dynamic entry point address: 0x%x\n", elfloader_autostart_processes);
+	printf("Dynamic entry point address: 0x%x\n", elfloader_autostart_process);
 
 	// cast to function pointer
 	dyn_entry_func* dyn_entry =
-		(dyn_entry_func*) elfloader_autostart_processes ;
+		(dyn_entry_func*) elfloader_autostart_process;
 
 	// execute dynamic application at function pointer
 	int result = dyn_entry();
