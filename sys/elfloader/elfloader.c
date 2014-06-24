@@ -150,14 +150,13 @@ find_local_symbol(void * fd, const char *symbol,
 {
   elf32_sym_t s;
   unsigned int a;
-  char name[30];
   relevant_section_t* sect;
   
   for(a = symtab; a < symtab + symtabsize; a += sizeof(s)) {
 	seek_read(fd, a, (char *)&s, sizeof(s));
 
 	if(s.name != 0) {
-	  seek_read(fd, strtab + s.name, name, sizeof(name));
+	  const char* name = fd + strtab + s.name;
 	  if(strcmp(name, symbol) == 0) {
 	if(s.shndx == bss.number) {
 	  sect = &bss;
@@ -191,7 +190,6 @@ relocate_section(void * fd,
   int rel_size = 0;
   elf32_sym_t s;
   unsigned int a;
-  char name[30];
   char* addr;
   relevant_section_t* sect;
 
@@ -208,8 +206,7 @@ relocate_section(void * fd,
 		  symtab + sizeof(elf32_sym_t) * ELF32_R_SYM(rela.info),
 		  (char *)&s, sizeof(s));
 	if(s.name != 0) {
-	  seek_read(fd, strtab + s.name, name, sizeof(name));
-	  PRINTF("name: %s\n", name);
+	  const char* name = fd + strtab + s.name;
 	  addr = (char *)symtab_lookup(name);
 	  /* ADDED */
 	  if(addr == NULL) {
