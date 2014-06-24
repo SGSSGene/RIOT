@@ -39,6 +39,7 @@
 #include <stddef.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #define DEBUG 1
 #if DEBUG
@@ -156,7 +157,7 @@ find_local_symbol(void * fd, const char *symbol,
 {
 	void* retAddr = NULL;
 
-	for(const elf32_sym_t* s = fd+symtab->offset; s < fd+symtab->offset + symtab->size; ++s) {
+	for(const elf32_sym_t* s = fd+symtab->offset; s != fd+symtab->offset + symtab->size; ++s) {
 		if(s->name != 0) {
 			const char* name = fd + strtab->offset + s->name;
 			if(strcmp(name, symbol) == 0) {
@@ -192,9 +193,9 @@ relocate_section(void * fd,
   } else {
 	rel_size = sizeof(elf32_rel_t);
   }
-  
+
   for(a = section->offset; a < section->offset + section->size; a += rel_size) {
-	seek_read(fd, a, (char *)&rela, rel_size);
+	memcpy(&rela, fd+a, rel_size);
 	seek_read(fd,
 		  symtab->offset + sizeof(elf32_sym_t) * ELF32_R_SYM(rela.info),
 		  (char *)&s, sizeof(s));
@@ -229,7 +230,7 @@ relocate_section(void * fd,
 
 	if(!using_relas) {
 	  /* copy addend to rela structure */
-	  seek_read(fd, sectionAddr->offset + rela.offset, (char *)&rela.addend, 4);
+	  memcpy(&rela.addend, fd + sectionAddr->offset + rela.offset, 4);
 	}
 
 	elfloader_arch_relocate(fd, sectionAddr->offset, sectionAddr->address, &rela, addr);
@@ -284,7 +285,7 @@ elfloader_load(void * fd, const char * entry_point_name)
     /* The string table section: holds the names of the sections. */
     strtable = fd + ehdr->shoff + ehdr->shentsize * ehdr->shstrndx;
 
-    PRINTF("Strtable offset %d\n", strtable->offset);
+    PRINTF("Strtable offset %d\n", (int)strtable->offset);
 
     /* Go through all sections and pick out the relevant ones. The
        ".text" segment holds the actual code from the ELF file, the
@@ -313,8 +314,8 @@ elfloader_load(void * fd, const char * entry_point_name)
         const void const* nameptr = fd + strtable->offset + shdr->name;
 
         PRINTF("Section shdrptr 0x%x, %d + %d type %d\n",
-               shdrptr,
-               strtable->offset, shdr->name,
+               (int)shdrptr,
+               (int)strtable->offset, (int)shdr->name,
                (int)shdr->type);
         /* Match the name of the section with a predefined set of names
            (.text, .data, .bss, .rela.text, .rela.data, .symtab, and
@@ -383,10 +384,10 @@ elfloader_load(void * fd, const char * entry_point_name)
 	text.address = fd + text.offset;
 	rodata.address = fd + rodata.offset;
 
-    PRINTF("bss base address: bss.address = 0x%08x\n", bss.address);
-    PRINTF("data base address: data.address = 0x%08x\n", data.address);
-    PRINTF("text base address: text.address = 0x%08x\n", text.address);
-    PRINTF("rodata base address: rodata.address = 0x%08x\n", rodata.address);
+    PRINTF("bss base address: bss.address = 0x%08x\n", (int)bss.address);
+    PRINTF("data base address: data.address = 0x%08x\n", (int)data.address);
+    PRINTF("text base address: text.address = 0x%08x\n", (int)text.address);
+    PRINTF("rodata base address: rodata.address = 0x%08x\n", (int)rodata.address);
 
 
     /* If we have text segment relocations, we process them. */
