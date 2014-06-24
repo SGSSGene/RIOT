@@ -70,6 +70,10 @@ elfloader_arch_relocate(void * fd, unsigned int sectionoffset,
 {
   addr += rela->r_addend;
 
-  memcpy(fd + sectionoffset + rela->r_offset, &addr, 2);
+    // yes, really copy the value of addr, hence we need to pass the
+    // address fo addr!
+    //*((char **)(fd + sectionoffset + rel->offset)) = addr;
+    //*((char *)(fd + sectionoffset + rela->r_offset)) = addr;
+	memcpy(fd + sectionoffset + rela->r_offset, &addr, 2);
 }
 /*---------------------------------------------------------------------------*/
