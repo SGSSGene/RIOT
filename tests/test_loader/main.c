@@ -28,18 +28,13 @@
 // provide the dynamic app as an array (workaround)
 #include "../test_dyn_app/dyn_main.h"
 
-typedef int dyn_entry_func(void);
-
 int main(void)
 {
 	// relocate object file at char * dyn_app
-	int entry = elfloader_load(dyn_app, "dyn_main");
+	process_t dyn_entry;
+	int entry = elfloader_load(dyn_app, "dyn_main", &dyn_entry);
 
-	printf("Dynamic entry point address: 0x%x\n", elfloader_autostart_process);
-
-	// cast to function pointer
-	dyn_entry_func* dyn_entry =
-		(dyn_entry_func*) elfloader_autostart_process;
+	printf("Dynamic entry point address: 0x%x\n", dyn_entry);
 
 	// execute dynamic application at function pointer
 	int result = dyn_entry();
