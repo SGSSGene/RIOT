@@ -75,13 +75,13 @@ and if it is, then the following is possible:
 
 Which executes the function at *dyn\_entry*.
 
-Supporting Dynamic Loading on Other Systems
--------------------------------------------
+# Supporting Dynamic Loading on Other Systems
 
 In this section we describe how to support dynamic loading on a new
 system and by this explain the details of the process.
 
-# Creating a loadable object file
+Creating a loadable object file
+-------------------------------------------
 
 The biggest challenge in running dynamic code, is that the final
 memory locations of functions and other symbols are unknown at
