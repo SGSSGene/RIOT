@@ -48,6 +48,13 @@ project). For that end a C source file is generated, that is compiled
 into RIOT. To stabilize the addresses in this table, RIOT needs to be
 compiled several times. Please look in *test_loader* for an example.
 
+Please note, that while compiling RIOT for dynamic loading, you need
+to ensure, that every function or global variable, that will be used
+by your dynamic applications, is compiled into RIOT. So e.g. if you
+want to use a certain module in your dynamic applications, then that
+module needs to be included into RIOT, or your dynamic application
+needs to bring it along.
+
 Loading Dynamic Applications
 ----------------------------
 
@@ -68,3 +75,27 @@ and if it is, then the following is possible:
 
 Which executes the function at *dyn\_entry*.
 
+Supporting Dynamic Loading on Other Systems
+-------------------------------------------
+
+In this section we describe how to support dynamic loading on a new
+system and by this explain the details of the process.
+
+# Creating a loadable object file
+
+The biggest challenge in running dynamic code, is that the final
+memory locations of functions and other symbols are unknown at
+compile/link time. Even when producing position independent (gcc
+switch *-fPIC*) there may (and most probably will) be some unresolved
+references in your object file. Those unresolved references need to
+correspond to symbols in the kernel.
+
+The easiest way to create an object file that meets your requirements
+is to compile a single *.c* file
+
+	${MY_CPU_SPECIFIC_GCC} -c main.c -o main.o
+
+An example is provided in *tests/test_dyn_app*, where the resulting
+object file is hexdumped into C source file, which is useful for
+debugging, since that's probably the easiest way to get your
+application into memory at a known position.
