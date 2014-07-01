@@ -120,6 +120,11 @@
 #define ELFLOADER_NO_STARTPOINT       7
 
 /**
+ * A pointer to the processes loaded with elfloader_load().
+ */
+typedef int (*process_t)(void);
+
+/**
  * \brief      Load and relocate an ELF file.
  * \param fd   An open CFS file descriptor.
  * \param entry_point_name
@@ -142,18 +147,7 @@
  *             the file must be backed up first.
  *
  */
-int elfloader_load(void * fd, const char * entry_point_name);
-
-/**
- * A pointer to the processes loaded with elfloader_load().
- */
-extern struct process * const * elfloader_autostart_process;
-
-/**
- * If elfloader_load() could not find a specific symbol, it is copied
- * into this array.
- */
-extern char elfloader_unknown[30];
+int elfloader_load(void * fd, const char * entry_point_name, process_t** elfloader_process);
 
 typedef uint32_t elf32_word;
 typedef int32_t  elf32_sword;

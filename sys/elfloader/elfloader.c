@@ -128,9 +128,6 @@ typedef struct relSectGroup {
 	relevant_section_t bss, data, rodata, text;
 } relSectGroup_t;
 
-char elfloader_unknown[30];	/* Name that caused link error. */
-struct process * const * elfloader_autostart_process;
-
 /*---------------------------------------------------------------------------*/
 const relevant_section_t* findSectionById(elf32_half id, const relSectGroup_t* rsg) {
 	const relevant_section_t* retSect = NULL;
@@ -208,8 +205,6 @@ relocate_section(void * fd,
 		const relevant_section_t* sect = findSectionById(s->shndx, rsg);
 		if (sect == NULL) {
 		  PRINTF("elfloader unknown name: '%30s'\n", name);
-		  memcpy(elfloader_unknown, name, sizeof(elfloader_unknown));
-		  elfloader_unknown[sizeof(elfloader_unknown) - 1] = 0;
 		  return ELFLOADER_SYMBOL_NOT_FOUND;
 		}
 
@@ -249,7 +244,7 @@ int check_if_correct_elfheader(void const* ptr) {
 
 /*---------------------------------------------------------------------------*/
 int
-elfloader_load(void * fd, const char * entry_point_name)
+elfloader_load(void * fd, const char * entry_point_name, process_t** elfloader_process)
 {
     const elf32_shdr_t* strtable;
 
@@ -267,8 +262,6 @@ elfloader_load(void * fd, const char * entry_point_name)
 
     /* The ELF header is located at the start of the buffer. */
     const elf32_ehdr_t* ehdr = (const elf32_ehdr_t*)fd;
-
-    elfloader_unknown[0] = 0;
 
     /* Make sure that we have a correct and compatible ELF header. */
     if (!check_if_correct_elfheader(ehdr->ident)) {
@@ -420,8 +413,8 @@ elfloader_load(void * fd, const char * entry_point_name)
     memcpy(fd+rsg.data.offset, rsg.data.address, rsg.data.size);
 
     PRINTF("elfloader: autostart search\n");
-    elfloader_autostart_process = (struct process **) find_local_symbol(fd, entry_point_name, symtab, strtab, &rsg);
-    if(elfloader_autostart_process == NULL) {
+    *elfloader_process = (process_t *) find_local_symbol(fd, entry_point_name, symtab, strtab, &rsg);
+    if(*elfloader_process == NULL) {
 		return ELFLOADER_NO_STARTPOINT;
     }
     return ELFLOADER_OK;
