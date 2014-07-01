@@ -1,8 +1,8 @@
 Dynamic Loader for RIOT
 =======================
 
-This is a port of the Contiki
-[dynamic loader](https://github.com/contiki-os/contiki/wiki/The-dynamic-loader)
+This is a port of the
+[Contiki dynamic loader](https://github.com/contiki-os/contiki/wiki/The-dynamic-loader)
 to RIOT. While usually a RIOT application is compiled together with
 the OS into a single binary, this module allows put code on a running
 system and execute it. This allows adding new functions to a running
@@ -22,12 +22,12 @@ file and figure out *where* new addresses need to be written to and
 *which* new addresses need to be written. 
 
 To execute dynamic code in RIOT, the user need to provide an object
-file (.o) with the code. It is the responsibility of the developer of a
-dynamic application to provide an object file with at least the
-*.text*, *.data*, *.bss*, *.strtab* and *.symtab* sections. When there
-are some relocation in *.text* and/or *.data*, also the *.rela.text*
-and/or *.data.text* need to be in the object file, which should be
-ensured by the compiler/linker.
+file (.o) (and elf file actually) with the code. It is the
+responsibility of the developer of a dynamic application to provide an
+object file with at least the *.text*, *.data*, *.bss*, *.strtab* and
+*.symtab* sections. When there are some relocation in *.text* and/or
+*.data*, also the *.rela.text* and/or *.data.text* need to be in the
+object file, which should be ensured by the compiler/linker.
 
 An example of a dynamic application for the msp-430 can be found in
 the tests as *test_dyn_app*.
@@ -81,11 +81,11 @@ In this section we describe how to support dynamic loading on a new
 system and by this explain the details of the process.
 
 Creating a loadable object file
--------------------------------------------
+-------------------------------
 
 The biggest challenge in running dynamic code, is that the final
 memory locations of functions and other symbols are unknown at
-compile/link time. Even when producing position independent (gcc
+compile/link time. Even when producing position independent code (gcc
 switch *-fPIC*) there may (and most probably will) be some unresolved
 references in your object file. Those unresolved references need to
 correspond to symbols in the kernel.
@@ -99,3 +99,46 @@ An example is provided in *tests/test_dyn_app*, where the resulting
 object file is hexdumped into C source file, which is useful for
 debugging, since that's probably the easiest way to get your
 application into memory at a known position.
+
+In case you want to use more than just one source file, you need to
+take care of linking the corresponding multiple object files into one
+object file. Take care to use partial/incremental linking, to allow
+for unresolved symbols, that point into RIOT.
+
+Implementing CPU specific relocation functionality
+--------------------------------------------------
+
+Since the structure of an *Executable and Linkable Format* (elf) file
+allows to implement most of the loading work for all platforms, which
+support elf, in the same way, a new platform can be supported by just
+implementing
+
+	void elfloader_arch_relocate(void * fd,
+	                             unsigned int sectionoffset,
+	                             char *sectionaddr,
+	                             elf32_rela_t* rela,
+								 const char *addr);
+
+An example implementation can be found for the msp-430:
+
+	/*---------------------------------------------------------------------------*/
+	void
+	elfloader_arch_relocate(void * fd, unsigned int sectionoffset,
+							char *sectionaddr,
+							elf32_rela_t* rela, const char *addr)
+	{
+		addr += rela->addend;
+		// yes really copy the value of *addr*. hence the & in &addr.
+		memcpy(fd + sectionoffset + rela->offset, &addr, 2);
+	}
+	/*---------------------------------------------------------------------------*/
+
+For the msp-430 it is quite simple, but for most other platforms you
+will need to implement a long switch-case block, for doing different
+things for different relocation types (the msp-430 has only one). For
+further examples, look in the Contiki project.
+
+In contrast to the Contiki loader, *elfloader_arch_relocate* is the
+only function that is in need of implementation for each
+platform. Still the elfloader relies on the ability of RIOT to write
+to ROM for each particular platform.
