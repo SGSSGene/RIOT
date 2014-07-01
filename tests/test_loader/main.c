@@ -32,7 +32,7 @@ int main(void)
 {
 	// relocate object file at char * dyn_app
 	process_t dyn_entry;
-	int entry = elfloader_load(dyn_app, "dyn_main", &dyn_entry, 0);
+	int status = elfloader_load(dyn_app, "dyn_main", &dyn_entry, 0);
 
 	printf("Dynamic entry point address: 0x%x\n", dyn_entry);
 
