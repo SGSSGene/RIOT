@@ -46,37 +46,37 @@
 void *
 symtab_lookup(const char *name)
 {
-  int start, middle, end;
-  int r;
+	int start, middle, end;
+	int r;
   
-  start = 0;
-  end = symbols_nelts - 1;	/* Last entry is { 0, 0 }. */
+	start = 0;
+	end = symbols_nelts - 1;	/* Last entry is { 0, 0 }. */
 
-  while(start <= end) {
-    /* Check middle, divide */
-    middle = (start + end) / 2;
-    r = strcmp(name, symbols[middle].name);
-    if(r < 0) {
-      end = middle - 1;
-    } else if(r > 0) {
-      start = middle + 1;
-    } else {
-      return symbols[middle].value;   
-    }
-  }
-  return NULL;
+	while(start <= end) {
+		/* Check middle, divide */
+		middle = (start + end) / 2;
+		r = strcmp(name, symbols[middle].name);
+		if(r < 0) {
+			end = middle - 1;
+		} else if(r > 0) {
+			start = middle + 1;
+		} else {
+			return symbols[middle].value;   
+		}
+	}
+	return NULL;
 }
 #else /* SYMTAB_CONF_BINARY_SEARCH */
 void *
 symtab_lookup(const char *name)
 {
-  const struct symbols *s;
-  for(s = symbols; s->name != NULL; ++s) {
-    if(strcmp(name, s->name) == 0) {
-      return s->value;
-    }
-  }
-  return 0;
+	const struct symbols *s;
+	for(s = symbols; s->name != NULL; ++s) {
+		if(strcmp(name, s->name) == 0) {
+			return s->value;
+		}
+	}
+	return 0;
 }
 #endif /* SYMTAB_CONF_BINARY_SEARCH */
 /*---------------------------------------------------------------------------*/

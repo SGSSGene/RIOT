@@ -53,34 +53,34 @@
 
 
 typedef struct elf32_ehdr {
-  unsigned char ident[EI_NIDENT];	   /* ident bytes */
-  elf32_half type;				   /* file type */
-  elf32_half machine;				   /* target machine */
-  elf32_word version;				   /* file version */
-  elf32_addr entry;				   /* start address */
-  elf32_off  phoff;				   /* phdr file offset */
-  elf32_off  shoff;				   /* shdr file offset */
-  elf32_word flags;				   /* file flags */
-  elf32_half ehsize;				   /* sizeof ehdr */
-  elf32_half phentsize;			   /* sizeof phdr */
-  elf32_half phnum;				   /* number phdrs */
-  elf32_half shentsize;			   /* sizeof shdr */
-  elf32_half shnum;				   /* number shdrs */
-  elf32_half shstrndx;			   /* shdr string index */
+	unsigned char ident[EI_NIDENT];	   /* ident bytes */
+	elf32_half type;				   /* file type */
+	elf32_half machine;				   /* target machine */
+	elf32_word version;				   /* file version */
+	elf32_addr entry;				   /* start address */
+	elf32_off  phoff;				   /* phdr file offset */
+	elf32_off  shoff;				   /* shdr file offset */
+	elf32_word flags;				   /* file flags */
+	elf32_half ehsize;				   /* sizeof ehdr */
+	elf32_half phentsize;			   /* sizeof phdr */
+	elf32_half phnum;				   /* number phdrs */
+	elf32_half shentsize;			   /* sizeof shdr */
+	elf32_half shnum;				   /* number shdrs */
+	elf32_half shstrndx;			   /* shdr string index */
 } elf32_ehdr_t;
 
 
 typedef struct elf32_shdr {
-  elf32_word name;		/* section name */
-  elf32_word type;		/* SHT_... */
-  elf32_word flags;			/* SHF_... */
-  elf32_addr addr;		/* virtual address */
-  elf32_off  offset;			/* file offset */
-  elf32_word size;		/* section size */
-  elf32_word link;		/* misc info */
-  elf32_word info;		/* misc info */
-  elf32_word addralign;	/* memory alignment */
-  elf32_word entsize;	/* entry size if table */
+	elf32_word name;		/* section name */
+	elf32_word type;		/* SHT_... */
+	elf32_word flags;			/* SHF_... */
+	elf32_addr addr;		/* virtual address */
+	elf32_off  offset;			/* file offset */
+	elf32_word size;		/* section size */
+	elf32_word link;		/* misc info */
+	elf32_word info;		/* misc info */
+	elf32_word addralign;	/* memory alignment */
+	elf32_word entsize;	/* entry size if table */
 } elf32_shdr_t;
 
 /* sh_type */
@@ -102,26 +102,26 @@ typedef struct elf32_shdr {
 #define SHT_HIUSER		0xffffffff		/* specific indexes */
 
 typedef struct elf32_rel {
-  elf32_addr	  offset;		  /* Location to be relocated. */
-  elf32_word	  info;		  /* Relocation type and symbol index. */
+	elf32_addr	  offset;		  /* Location to be relocated. */
+	elf32_word	  info;		  /* Relocation type and symbol index. */
 } elf32_rel_t;
 
 typedef struct elf32_sym {
-  elf32_word	  name;		  /* String table index of name. */
-  elf32_addr	  value;		  /* Symbol value. */
-  elf32_word	  size;		  /* Size of associated object. */
-  unsigned char	  info;		  /* Type and binding information. */
-  unsigned char	  other;		  /* Reserved (not used). */
-  elf32_half	  shndx;		  /* Section index of symbol. */
+	elf32_word	  name;		  /* String table index of name. */
+	elf32_addr	  value;		  /* Symbol value. */
+	elf32_word	  size;		  /* Size of associated object. */
+	unsigned char	  info;		  /* Type and binding information. */
+	unsigned char	  other;		  /* Reserved (not used). */
+	elf32_half	  shndx;		  /* Section index of symbol. */
 } elf32_sym_t;
 
 #define ELF32_R_SYM(info)       ((info) >> 8)
 
 typedef struct relevant_section {
-  unsigned char number;
-  unsigned int offset;
-  char *address;
-  unsigned short size;
+	unsigned char number;
+	unsigned int offset;
+	char *address;
+	unsigned short size;
 } relevant_section_t;
 
 typedef struct relSectGroup {
@@ -175,59 +175,59 @@ relocate_section(void * fd,
 				 unsigned char using_relas,
 				 const relSectGroup_t* rsg)
 {
-  /* sectionbase added; runtime start address of current section */
-  elf32_rela_t rela; /* Now used both for rel and rela data! */
-  int rel_size = 0;
-  unsigned int a;
-  const char* addr;
+	/* sectionbase added; runtime start address of current section */
+	elf32_rela_t rela; /* Now used both for rel and rela data! */
+	int rel_size = 0;
+	unsigned int a;
+	const char* addr;
 
-  /* determine correct relocation entry sizes */
-  if(using_relas) {
-	rel_size = sizeof(elf32_rela_t);
-  } else {
-	rel_size = sizeof(elf32_rel_t);
-  }
-
-  for(a = shdr->offset; a < shdr->offset + shdr->size; a += rel_size) {
-	memcpy(&rela, fd+a, rel_size);
-	const elf32_sym_t* s = fd+symtab->offset + sizeof(elf32_sym_t) * ELF32_R_SYM(rela.info);
-	if(s->name != 0) {
-	  const char* name = fd + strtab->offset + s->name;
-
-	  // Look for the symbol in the kernel
-	  addr = (char *)symtab_lookup(name);
-	  /* ADDED */
-	  if(addr == NULL) {
-	PRINTF("name not found in global: %s\n", name);
-	addr = find_local_symbol(fd, name, symtab, strtab, rsg);
-	PRINTF("found address %p\n", addr);
-	  }
-	  if(addr == NULL) {
-		// This doesn't look save
-		const relevant_section_t* sect = findSectionById(s->shndx, rsg);
-		if (sect == NULL) {
-		  PRINTF("elfloader unknown name: '%30s'\n", name);
-		  return ELFLOADER_SYMBOL_NOT_FOUND;
-		}
-
-	addr = sect->address;
-	  }
+	/* determine correct relocation entry sizes */
+	if(using_relas) {
+		rel_size = sizeof(elf32_rela_t);
 	} else {
-		const relevant_section_t* sect = findSectionById(s->shndx, rsg);
-		if (sect == NULL) {
-			return ELFLOADER_SEGMENT_NOT_FOUND;
+		rel_size = sizeof(elf32_rel_t);
+	}
+
+	for(a = shdr->offset; a < shdr->offset + shdr->size; a += rel_size) {
+		memcpy(&rela, fd+a, rel_size);
+		const elf32_sym_t* s = fd+symtab->offset + sizeof(elf32_sym_t) * ELF32_R_SYM(rela.info);
+		if(s->name != 0) {
+			const char* name = fd + strtab->offset + s->name;
+
+			// Look for the symbol in the kernel
+			addr = (char *)symtab_lookup(name);
+			/* ADDED */
+			if(addr == NULL) {
+				PRINTF("name not found in global: %s\n", name);
+				addr = find_local_symbol(fd, name, symtab, strtab, rsg);
+				PRINTF("found address %p\n", addr);
+			}
+			if(addr == NULL) {
+				// This doesn't look save
+				const relevant_section_t* sect = findSectionById(s->shndx, rsg);
+				if (sect == NULL) {
+					PRINTF("elfloader unknown name: '%30s'\n", name);
+					return ELFLOADER_SYMBOL_NOT_FOUND;
+				}
+
+				addr = sect->address;
+			}
+		} else {
+			const relevant_section_t* sect = findSectionById(s->shndx, rsg);
+			if (sect == NULL) {
+				return ELFLOADER_SEGMENT_NOT_FOUND;
+			}
+			addr = sect->address;
 		}
-		addr = sect->address;
-	}
 
-	if(!using_relas) {
-	  /* copy addend to rela structure */
-	  memcpy(&rela.addend, fd + sectionAddr->offset + rela.offset, 4);
-	}
+		if(!using_relas) {
+			/* copy addend to rela structure */
+			memcpy(&rela.addend, fd + sectionAddr->offset + rela.offset, 4);
+		}
 
-	elfloader_arch_relocate(fd, sectionAddr->offset, sectionAddr->address, &rela, addr);
-  }
-  return ELFLOADER_OK;
+		elfloader_arch_relocate(fd, sectionAddr->offset, sectionAddr->address, &rela, addr);
+	}
+	return ELFLOADER_OK;
 }
 
 /*---------------------------------------------------------------------------*/
