@@ -168,7 +168,7 @@ find_local_symbol(void * fd, const char *symbol,
 /*---------------------------------------------------------------------------*/
 static int
 relocate_section(void * fd,
-				 const elf32_shdr_t* section,
+				 const elf32_shdr_t* shdr,
 				 const relevant_section_t* sectionAddr,
 				 const elf32_shdr_t* strtab,
 				 const elf32_shdr_t* symtab,
@@ -188,11 +188,13 @@ relocate_section(void * fd,
 	rel_size = sizeof(elf32_rel_t);
   }
 
-  for(a = section->offset; a < section->offset + section->size; a += rel_size) {
+  for(a = shdr->offset; a < shdr->offset + shdr->size; a += rel_size) {
 	memcpy(&rela, fd+a, rel_size);
 	const elf32_sym_t* s = fd+symtab->offset + sizeof(elf32_sym_t) * ELF32_R_SYM(rela.info);
 	if(s->name != 0) {
 	  const char* name = fd + strtab->offset + s->name;
+
+	  // Look for the symbol in the kernel
 	  addr = (char *)symtab_lookup(name);
 	  /* ADDED */
 	  if(addr == NULL) {
@@ -244,7 +246,7 @@ int check_if_correct_elfheader(void const* ptr) {
 
 /*---------------------------------------------------------------------------*/
 int
-elfloader_load(void * fd, const char * entry_point_name, process_t** elfloader_process)
+elfloader_load(void * fd, const char * entry_point_name, process_t** elfloader_process, int isInROM)
 {
     const elf32_shdr_t* strtable;
 
@@ -385,6 +387,7 @@ elfloader_load(void * fd, const char * entry_point_name, process_t** elfloader_p
     if(textrela != NULL) {
         int ret = relocate_section(fd, textrela, &rsg.text, strtab, symtab, using_relas, &rsg);
         if(ret != ELFLOADER_OK) {
+            PRINTF("elfloader: textrel/a failed\n");
             return ret;
         }
     }
@@ -394,7 +397,7 @@ elfloader_load(void * fd, const char * entry_point_name, process_t** elfloader_p
     if(rodatarela != NULL) {
         int ret = relocate_section(fd, rodatarela, &rsg.rodata, strtab, symtab, using_relas, &rsg);
         if(ret != ELFLOADER_OK) {
-            PRINTF("elfloader: data failed\n");
+            PRINTF("elfloader: rodata failed\n");
             return ret;
         }
     }

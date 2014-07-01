@@ -147,7 +147,7 @@ typedef int (*process_t)(void);
  *             the file must be backed up first.
  *
  */
-int elfloader_load(void * fd, const char * entry_point_name, process_t** elfloader_process);
+int elfloader_load(void * fd, const char * entry_point_name, process_t** elfloader_process, int isInROM);
 
 typedef uint32_t elf32_word;
 typedef int32_t  elf32_sword;
