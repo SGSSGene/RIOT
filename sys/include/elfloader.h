@@ -131,26 +131,26 @@ typedef int (*process_t)(void);
 
 /**
  * \brief      Load and relocate an ELF file.
- * \param fd   An open CFS file descriptor.
+ * \param fd   A pointer to the object file.
  * \param entry_point_name
- *             Name of the symbol for wich the address is set in
- *             elfloader_autostart_processes
+ *             Name of the symbol for wich the address is written to
+ *             elfloader_process parameter.
+ * \param isInROM
+ *             Specifies, whether the object file is in RAM (1) or in
+ *             ROM (0).
  *
  * \return     ELFLOADER_OK if loading and relocation worked.
  *             Otherwise an error value.
  *
- *             This function loads and relocates an ELF file. The ELF
- *             file must have been opened with cfs_open() prior to
- *             calling this function.
+ *             This function loads and relocates an ELF file.
  *
  *             If the function is able to load the ELF file, a pointer
- *             to the process structure in the model is stored in the
- *             elfloader_loaded_process variable.
+ *             to the entry_point_name is written to elfloader_process.
  *
- * \note       This function modifies the ELF file opened with cfs_open()!
- *             If the contents of the file is required to be intact,
- *             the file must be backed up first.
- *
+ * \note
+ *             This function modifies the ELF file.  If the contents
+ *             of the file is required to be intact, the file must be
+ *             backed up first.
  */
 int elfloader_load(void * fd, const char * entry_point_name, process_t** elfloader_process, int isInROM);
 
@@ -160,10 +160,16 @@ typedef uint16_t elf32_half;
 typedef uint32_t elf32_off;
 typedef uint32_t elf32_addr;
 
+// representation of a relocation
 typedef struct elf32_rela {
-	elf32_addr      offset;       /* Location to be relocated. */
-	elf32_word      info;         /* Relocation type and symbol index. */
-	elf32_sword     addend;       /* Addend. */
+	elf32_addr      offset;       // location of the relocation, as an
+								  // offset to section start. This is
+								  // where the new address needs to be
+								  // written.
+
+	elf32_word      info;         // Relocation type and symbol index.
+
+	elf32_sword     addend;       // Addend
 } elf32_rela_t;
 
 
