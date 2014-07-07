@@ -48,7 +48,7 @@ symtab_lookup(const char *name)
 {
 	int start, middle, end;
 	int r;
-  
+
 	start = 0;
 	end = symbols_nelts - 1;	/* Last entry is { 0, 0 }. */
 
@@ -61,7 +61,7 @@ symtab_lookup(const char *name)
 		} else if(r > 0) {
 			start = middle + 1;
 		} else {
-			return symbols[middle].value;   
+			return symbols[middle].value;
 		}
 	}
 	return NULL;
