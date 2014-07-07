@@ -32,13 +32,31 @@
 #ifndef SYMBOLS_DEF_H_
 #define SYMBOLS_DEF_H_
 
+// represents a symbol in an object file
 struct symbols {
-	const char *name;
-	void *value;
+	const char *name; // name of the symbol
+	void *value;      // address of the symbol at runtime
 };
 
+/**
+ * This variable holds the number of symbols in RIOT. For definition,
+ * please look below at symbols[] declaration documentation.
+ */
 extern const int symbols_nelts;
 
-extern const struct symbols symbols[/* symbols_nelts */];
+/**
+ * This array holds all the symbols in RIOT.
+ *
+ * The definition of this array needs to be generated externally by
+ * parsing a compiled RIOT object with this array being empty. From
+ * this a symbols.c file with the correct symbols in this array is
+ * generated, but since the size of the array changed, the addresses
+ * of all symbols after this array are wrong, so another compile pass
+ * is needed, generating a symbols.c, that defines all the symbols in
+ * RIOT with the correct addresses.
+ *
+ * Will have symbols_nelts size.
+ */
+extern const struct symbols symbols[];
 
 #endif /* SYMBOLS_DEF_H_ */
