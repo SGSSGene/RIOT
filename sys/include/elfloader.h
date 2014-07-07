@@ -4,30 +4,28 @@
  */
 
 /**
- * \defgroup elfloader The Contiki ELF loader
+ * This file is an adoptation of the The Contiki ELF loader.
  *
- * The Contiki ELF loader links, relocates, and loads ELF
- * (Executable Linkable Format) object files into a running Contiki
- * system.
+ * The ELF loader links, relocates, and loads ELF (Executable Linkable
+ * Format) object files into a running RIOT system.
  *
  * ELF is a standard format for relocatable object code and executable
  * files. ELF is the standard program format for Linux, Solaris, and
  * other operating systems.
  *
- * An ELF file contains either a standalone executable program or a
+ * An ELF file contains is either a standalone executable program or a
  * program module. The file contains both the program code, the
  * program data, as well as information about how to link, relocate,
  * and load the program into a running system.
  *
- * The ELF file is composed of a set of sections. The sections contain
+ * An ELF file is composed of a set of sections. The sections contain
  * program code, data, or relocation information, but can also contain
  * debugging information.
  *
- * To link and relocate an ELF file, the Contiki ELF loader first
- * parses the ELF file structure to find the appropriate ELF
- * sections. It then allocates memory for the program code and data in
- * ROM and RAM, respectively. After allocating memory, the Contiki ELF
- * loader starts relocating the code found in the ELF file.
+ * To link and relocate an ELF file, the ELF loader first parses the
+ * ELF file structure to find the appropriate ELF sections. It then
+ * rewrites the ELF file, such that the blank spots are filled with
+ * the correct addresses and thus making it ready for execution.
  *
  * @{
  */
@@ -36,7 +34,14 @@
  * \file
  *         Header file for the Contiki ELF loader.
  * \author
- *         Adam Dunkels <adam@sics.se>
+ *         Adam Dunkels <adam@sics.se> (Contiki)
+ *
+ * Adopted for RIOT:
+ *
+ * \author      Simon Gene Gottlieb <s.gottlieb@fu-berlin.de>
+ * \author      Dimitri Schachmann <d.schachmann@fu-berlin.de>
+ * \author      Ron Wenzel <ron.wenzel@fu-berlin.de>
+ * \author      Christopher Pockrandt <christopher.pockrandt@fu-berlin.de>
  *
  */
 

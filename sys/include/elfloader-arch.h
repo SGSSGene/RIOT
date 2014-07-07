@@ -38,14 +38,14 @@
  * \defgroup elfloaderarch Architecture specific functionality for the ELF loader.
  *
  * The architecture specific functionality for the Contiki ELF loader
- * has to be implemented for each processor type Contiki runs on.
+ * has to be implemented for each processor type RIOT runs on.
  *
  * Since the ELF format is slightly different for different processor
  * types, the Contiki ELF loader is divided into two parts: the
  * generic ELF loader module (\ref elfloader) and the architecture
  * specific part (this module). The architecture specific part deals
- * with memory allocation, code and data relocation, and writing the
- * relocated ELF code into program memory.
+ * data relocation, and writing the relocated ELF code into program
+ * memory.
  *
  * To port the Contiki ELF loader to a new processor type, this module
  * has to be implemented for the new processor type.
@@ -55,10 +55,17 @@
 
 /**
  * \file
- *         Header file for the architecture specific parts of the Contiki ELF loader.
+ *         Header file for the architecture specific parts of the RIOT ELF loader.
  *
  * \author
- *         Adam Dunkels <adam@sics.se>
+ *         Adam Dunkels <adam@sics.se> (Contiki)
+ *
+ * Adopted for RIOT:
+ *
+ * \author      Simon Gene Gottlieb <s.gottlieb@fu-berlin.de>
+ * \author      Dimitri Schachmann <d.schachmann@fu-berlin.de>
+ * \author      Ron Wenzel <ron.wenzel@fu-berlin.de>
+ * \author      Christopher Pockrandt <christopher.pockrandt@fu-berlin.de>
  *
  */
 
