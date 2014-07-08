@@ -33,6 +33,7 @@
 
 #include "elfloader.h"
 #include "elfloader-arch.h"
+#include "flashrom.h"
 
 #include "symtab.h"
 
@@ -190,6 +191,9 @@ relocate_section(void * objPtr,
 		rel_size = sizeof(elf32_rel_t);
 	}
 
+	uint8_t* segment = NULL; // Buffer segment
+	uint8_t* lastSegment = NULL;
+
 	for(a = shdr->offset; a < shdr->offset + shdr->size; a += rel_size) {
 		memcpy(&rela, objPtr+a, rel_size);
 		const elf32_sym_t* s = objPtr+symtab->offset + sizeof(elf32_sym_t) * ELF32_R_SYM(rela.info);
@@ -227,7 +231,39 @@ relocate_section(void * objPtr,
 			memcpy(&rela.addend, objPtr + sectionAddr->offset + rela.offset, 4);
 		}
 
-		elfloader_arch_relocate(objPtr, sectionAddr->offset, sectionAddr->address, &rela, addr);
+		//TODO address size unequal to int default size
+		uint8_t *addrToWrite = objPtr + sectionAddr->offset + rela.offset;
+		int currentSegmentSize = elfloader_arch_get_segment_size(addrToWrite);
+		uint8_t *segmentToWrite = (uint8_t*)((int)addrToWrite & ~(currentSegmentSize-1));
+
+		// If the segment changes, write old segment to flash
+		if (segmentToWrite != lastSegment) {
+
+			// First loop lastSegement is NULL -> nothing to erase/write
+			if (lastSegment != NULL) {
+				if (memcmp(lastSegment, segment, elfloader_arch_get_segment_size(lastSegment)) != 0) {
+					//erase segment
+					flashrom_erase(lastSegment);
+					//write segment
+					flashrom_write(lastSegment, segment, elfloader_arch_get_segment_size(lastSegment));
+				}
+				free(segment);
+			}
+			segment = malloc(currentSegmentSize);
+			memcpy(segment, segmentToWrite, currentSegmentSize);
+
+			lastSegment = segmentToWrite;
+		}
+		elfloader_arch_relocate(segment + (addrToWrite - segmentToWrite), &rela, addr);
+	}
+	if (lastSegment != NULL) {
+		if (memcmp(lastSegment, segment, elfloader_arch_get_segment_size(lastSegment)) != 0) {
+			//erase segment
+			flashrom_erase(lastSegment);
+			//write segment
+			flashrom_write(lastSegment, segment, elfloader_arch_get_segment_size(lastSegment));
+}
+		free(segment);
 	}
 	return ELFLOADER_OK;
 }

@@ -36,12 +36,16 @@
 
 //------------------------------------------------------------------------------
 void
-elfloader_arch_relocate(void * objPtr, unsigned int sectionoffset,
-						char *sectionaddr,
+elfloader_arch_relocate(uint8_t *addrToWrite,
 						elf32_rela_t* rela, const char *addr)
 {
 	addr += rela->addend;
 	// yes really copy the value of *addr*. hence the & in &addr.
-	memcpy(objPtr + sectionoffset + rela->offset, &addr, 2);
+	memcpy(addrToWrite, &addr, 2);
 }
 //------------------------------------------------------------------------------
+int elfloader_arch_get_segment_size(const uint8_t *addr) {
+	return 512;
+}
+//------------------------------------------------------------------------------
+

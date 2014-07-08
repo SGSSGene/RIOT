@@ -94,9 +94,9 @@
  *             code. This information is different from processor to
  *             processor.
  */
-void elfloader_arch_relocate(void * objPtr, unsigned int sectionoffset,
-							 char *sectionaddr,
+void elfloader_arch_relocate(uint8_t *addrToWrite,
 							 elf32_rela_t* rela, const char *addr);
+int elfloader_arch_get_segment_size(const uint8_t *addr);
 
 
 #endif /* ELFLOADER_ARCH_H_ */
