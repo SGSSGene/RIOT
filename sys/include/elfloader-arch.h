@@ -76,7 +76,8 @@
 
 /**
  * \brief      Perform a relocation.
- * \param fd   The file descriptor for the ELF file.
+ * \param objPtr
+ *             The file descriptor for the ELF file.
  * \param sectionoffset The file offset at which the relocation can be found.
  * \param sectionaddr The section start address (absolute runtime).
  * \param rela A pointer to an ELF32 rela structure (struct elf32_rela).
@@ -93,7 +94,7 @@
  *             code. This information is different from processor to
  *             processor.
  */
-void elfloader_arch_relocate(void * fd, unsigned int sectionoffset,
+void elfloader_arch_relocate(void * objPtr, unsigned int sectionoffset,
 							 char *sectionaddr,
 							 elf32_rela_t* rela, const char *addr);
 

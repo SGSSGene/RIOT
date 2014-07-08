@@ -131,7 +131,8 @@ typedef int (*process_t)(void);
 
 /**
  * \brief      Load and relocate an ELF file.
- * \param fd   A pointer to the object file.
+ * \param objPtr
+ *             A pointer to the object file.
  * \param entry_point_name
  *             Name of the symbol for wich the address is written to
  *             elfloader_process parameter.
@@ -152,7 +153,7 @@ typedef int (*process_t)(void);
  *             of the file is required to be intact, the file must be
  *             backed up first.
  */
-int elfloader_load(void * fd, const char * entry_point_name, process_t** elfloader_process, int isInROM);
+int elfloader_load(void * objPtr, const char * entry_point_name, process_t** elfloader_process, int isInROM);
 
 typedef uint32_t elf32_word;
 typedef int32_t  elf32_sword;
