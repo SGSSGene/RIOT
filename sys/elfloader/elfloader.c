@@ -236,33 +236,53 @@ relocate_section(void * objPtr,
 		int currentSegmentSize = elfloader_arch_get_segment_size(addrToWrite);
 		uint8_t *segmentToWrite = (uint8_t*)((int)addrToWrite & ~(currentSegmentSize-1));
 
+		printf("addrToWrite: 0x%x %d 0x%x\n", addrToWrite, currentSegmentSize, segmentToWrite);
+
 		// If the segment changes, write old segment to flash
 		if (segmentToWrite != lastSegment) {
 
 			// First loop lastSegement is NULL -> nothing to erase/write
 			if (lastSegment != NULL) {
 				if (memcmp(lastSegment, segment, elfloader_arch_get_segment_size(lastSegment)) != 0) {
+					printf("write segment, found new one\n");
 					//erase segment
 					flashrom_erase(lastSegment);
+					printf("erased\n");
 					//write segment
 					flashrom_write(lastSegment, segment, elfloader_arch_get_segment_size(lastSegment));
+					printf("written\n");
+
+				} else {
+					printf("write segment not needed, no changes, found new one\n");
 				}
 				free(segment);
 			}
+			printf("try to malloc\n");
 			segment = malloc(currentSegmentSize);
+			printf("going to memcpy %p\n", segment);
 			memcpy(segment, segmentToWrite, currentSegmentSize);
+			printf("mhm\n");
 
 			lastSegment = segmentToWrite;
 		}
+		printf("arch_relocate\n");
+
 		elfloader_arch_relocate(segment + (addrToWrite - segmentToWrite), &rela, addr);
 	}
 	if (lastSegment != NULL) {
 		if (memcmp(lastSegment, segment, elfloader_arch_get_segment_size(lastSegment)) != 0) {
+			printf("write segment, end of relocate\n");
+
 			//erase segment
 			flashrom_erase(lastSegment);
+			printf("erased\n");
 			//write segment
 			flashrom_write(lastSegment, segment, elfloader_arch_get_segment_size(lastSegment));
-}
+			printf("written\n");
+		} else {
+			printf("write segment not needed, no changes, endof relocate\n");
+		}
+
 		free(segment);
 	}
 	return ELFLOADER_OK;
