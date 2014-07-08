@@ -234,7 +234,7 @@ relocate_section(void * objPtr,
 
 //------------------------------------------------------------------------------
 
-int check_if_correct_elfheader(void const* ptr) {
+static int check_if_correct_elfheader(void const* ptr) {
 	static const unsigned char elf_magic_header[] =
 		{0x7f, 0x45, 0x4c, 0x46,  // 0x7f, 'E', 'L', 'F'
 		 0x01,                    // Only 32-bit objects.
