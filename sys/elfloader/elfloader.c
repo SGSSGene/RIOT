@@ -191,8 +191,8 @@ relocate_section(void * objPtr,
 		rel_size = sizeof(elf32_rel_t);
 	}
 
-	uint8_t* segment = NULL; // Buffer segment
-	uint8_t* lastSegment = NULL;
+	uint8_t segment[512]; // Buffering to avoid writes to flash
+	uint8_t* lastSegment = NULL; // Address of the last segment
 
 	for(a = shdr->offset; a < shdr->offset + shdr->size; a += rel_size) {
 		memcpy(&rela, objPtr+a, rel_size);
@@ -236,8 +236,6 @@ relocate_section(void * objPtr,
 		int currentSegmentSize = elfloader_arch_get_segment_size(addrToWrite);
 		uint8_t *segmentToWrite = (uint8_t*)((int)addrToWrite & ~(currentSegmentSize-1));
 
-		printf("addrToWrite: 0x%x %d 0x%x\n", addrToWrite, currentSegmentSize, segmentToWrite);
-
 		// If the segment changes, write old segment to flash
 		if (segmentToWrite != lastSegment) {
 
@@ -255,13 +253,8 @@ relocate_section(void * objPtr,
 				} else {
 					printf("write segment not needed, no changes, found new one\n");
 				}
-				free(segment);
 			}
-			printf("try to malloc\n");
-			segment = malloc(currentSegmentSize);
-			printf("going to memcpy %p\n", segment);
 			memcpy(segment, segmentToWrite, currentSegmentSize);
-			printf("mhm\n");
 
 			lastSegment = segmentToWrite;
 		}
@@ -282,8 +275,6 @@ relocate_section(void * objPtr,
 		} else {
 			printf("write segment not needed, no changes, endof relocate\n");
 		}
-
-		free(segment);
 	}
 	return ELFLOADER_OK;
 }
