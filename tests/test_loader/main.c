@@ -25,11 +25,19 @@
 #include <string.h>
 #include "elfloader.h"
 
+#include <cc110x/cc1100-interface.h>
+
+
+
 // provide the dynamic app as an array (workaround)
 #include "../test_dyn_app/dyn_main.h"
 
 int main(void)
 {
+	cc1100_init();
+
+	
+
 	// relocate object file at char * dyn_app
 	process_t dyn_entry;
 	int status = elfloader_load(dyn_app, "dyn_main", &dyn_entry, 0);

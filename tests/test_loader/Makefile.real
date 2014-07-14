@@ -11,5 +11,6 @@ export RIOTBASE ?= $(CURDIR)/../..
 export QUIET ?= 1
 
 USEMODULE += elfloader
+USEMODULE += cc110x
 
 include $(RIOTBASE)/Makefile.include

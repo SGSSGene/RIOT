@@ -5,7 +5,7 @@ RIOTBASE  = $(CURDIR)/../..
 MAKE_EMPTY_SYMBOLS ?= $(RIOTBASE)/dist/tools/loader/make-empty-symbols
 MAKESYMBOLS ?= $(RIOTBASE)/dist/tools/loader/msp430-make-symbols
 
-BOARD_WHITELIST := msb-430
+BOARD_WHITELIST := msb-430 msb-430h
 
 all:
 	make -C ../test_dyn_app
