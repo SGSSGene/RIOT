@@ -23,9 +23,37 @@
 
 #include <stdio.h>
 
+extern void led_on(void);
+extern void led_off(void);
+
 int dyn_main(void) {
 	int result = func1();
-	printf("Going to return %d from dyn_main.\n", result);
+
+    uint16_t i, j;
+
+    for (i = 1; i < 10; i++) {
+        for (j = 1; j != 0; j++) {
+            asm volatile(" nop ");
+        }
+    }
+	led_on();
+	
+	for (j = 1; j != 0; j++) {
+		asm volatile(" nop ");
+	}
+	led_off();
+
+	#ifdef DOUBLE_BLINK
+	for (j = 1; j != 0; j++) {
+		asm volatile(" nop ");
+	}
+	led_on();
+	for (j = 1; j != 0; j++) {
+		asm volatile(" nop ");
+	}
+	led_off();
+	#endif
+
 	return result;
 }
 
