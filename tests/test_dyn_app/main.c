@@ -25,7 +25,7 @@
 
 int dyn_main(void) {
 	int result = func1();
-	printf("Going to return %d from dyn_main.", result);
+	printf("Going to return %d from dyn_main.\n", result);
 	return result;
 }
 
