@@ -132,7 +132,9 @@ typedef int (*process_t)(void);
 /**
  * \brief      Load and relocate an ELF file.
  * \param objPtr
- *             A pointer to the object file.
+ *             A pointer to the object file. This pointer needs to be
+ *             aligned according to platform flash
+ *             requirements. Usually word size.
  * \param entry_point_name
  *             Name of the symbol for wich the address is written to
  *             elfloader_process parameter.
