@@ -9,7 +9,7 @@ include $(RIOTCPU)/$(CPU)/Makefile.include
 
 all:
 	$(AD)$(CC) -c main.c -o main.o
-	hexdump -v -e '1/1 "0x%x" ", "' main.o | sed 's/\(.*\)..$$/const unsigned char dyn_app\[\] = \{\1\}\;\n/' > dyn_main.h
+	hexdump -v -e '1/1 "0x%x" ", "' main.o | sed 's/\(.*\)..$$/const char a = 7; const unsigned char dyn_app\[\] = \{\1\}\;\n/' > dyn_main.h
 
 
 clean:
