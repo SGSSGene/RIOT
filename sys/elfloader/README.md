@@ -63,7 +63,7 @@ Assuming your object files lies already at a known memory location
 *dyn_app*. In such case all you need to do is to call
 
 	process_t dyn_entry;
-	int status = elfloader_load(dyn_app, "dyn_main", &dyn_entry, 0);
+	int status = elfloader_load(dyn_app, "dyn_main", &dyn_entry);
 
 where *"dyn_main"* is the name of the function you want the address
 of. *elfloader_load(...)* will then do all the relocations and write
@@ -107,6 +107,18 @@ object file. For this you need to produce a relocatable object file,
 which can usually be done with the --relocatable linker switch:
 
 	${MY_CPU_SPECIFIC_LD} -r file1.o file2.o -o combined_files.o
+
+Putting Objectfiles onto the device
+-----------------------------------
+
+To put and relocate an object file persistently, you need to put into
+the flash memory. Then during relocation, the new values are falshed
+persistently. You need to take care, that
+
+- The object file does not share any segements with running code,
+  because the flashing would interfere badly with it.
+- The object file is aligned according to CPU requirements. Usually
+  word size alignment.
 
 Implementing CPU specific relocation functionality
 --------------------------------------------------

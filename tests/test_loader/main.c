@@ -23,11 +23,16 @@
 
 #include <stdio.h>
 #include <string.h>
+
 #include "elfloader.h"
 #include <board.h>
 #include "msp430.h"
 
 #include <cc110x/cc1100-interface.h>
+#include "thread.h"
+#include "flags.h"
+#include "kernel.h"
+
 
 // provide the dynamic app as an array (workaround)
 #include "../test_dyn_app/dyn_main.h"
@@ -44,6 +49,9 @@ volatile uint16_t transmit_max  = 0;
 uint8_t  dyn_app_remote[1024];
 
 const uint8_t * _dyn_app = dyn_app + 512;
+
+#define LOADER_STACK_SIZE 800
+static char loader_stack[LOADER_STACK_SIZE];
 
 packet_handler_t packethandler(void* payload, int size, packet_info_t* info)
 {
@@ -95,19 +103,11 @@ void led_off(void)
 	LED_RED_OFF;
 }
 
-int main(void)
+void run(void)
 {
-	cc1100_init();
-	cc1100_set_address(1);
-	cc1100_set_channel(0);
-
-	cc1100_set_packet_handler(5, packethandler);
-
-	LED_RED_OFF;
-	
 	// relocate object file at char * dyn_app
 	process_t dyn_entry;
-	int status = elfloader_load(_dyn_app, "dyn_main", &dyn_entry, 0);
+	int status = elfloader_load(_dyn_app, "dyn_main", &dyn_entry);
 
 	printf("Dynamic entry point address: 0x%x\n", dyn_entry);
 
@@ -117,10 +117,25 @@ int main(void)
 		if ((transmit_size != 0) && (transmit_size == transmit_max)) {
 			printf("flashing update.\n");
 			flash_remote();
-			elfloader_load(_dyn_app, "dyn_main", &dyn_entry, 0);
+			elfloader_load(_dyn_app, "dyn_main", &dyn_entry);
 			transmit_max++;
 		}
 	}
+}
 
+
+int main(void)
+{
+	cc1100_init();
+	cc1100_set_address(1);
+	cc1100_set_channel(0);
+
+	cc1100_set_packet_handler(5, packethandler);
+
+	LED_RED_OFF;
+
+	// elfloader_load needs more stack, than the default stack size
+	thread_create(loader_stack, LOADER_STACK_SIZE, PRIORITY_MAIN - 1, CREATE_WOUT_YIELD | CREATE_STACKTEST, run, "elfloader_thread");
+	
     return 0;
 }

@@ -135,12 +135,10 @@ typedef int (*process_t)(void);
  *             A pointer to the object file. This pointer needs to be
  *             aligned according to platform flash
  *             requirements. Usually word size.
+ *
  * \param entry_point_name
  *             Name of the symbol for wich the address is written to
  *             elfloader_process parameter.
- * \param isInROM
- *             Specifies, whether the object file is in RAM (1) or in
- *             ROM (0).
  *
  * \return     ELFLOADER_OK if loading and relocation worked.
  *             Otherwise an error value.
@@ -155,7 +153,7 @@ typedef int (*process_t)(void);
  *             of the file is required to be intact, the file must be
  *             backed up first.
  */
-int elfloader_load(void * objPtr, const char * entry_point_name, process_t** elfloader_process, int isInROM);
+int elfloader_load(void * objPtr, const char * entry_point_name, process_t** elfloader_process);
 
 typedef uint32_t elf32_word;
 typedef int32_t  elf32_sword;

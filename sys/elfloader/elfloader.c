@@ -294,7 +294,7 @@ static int check_if_correct_elfheader(void const* ptr) {
 
 
 //------------------------------------------------------------------------------
-int elfloader_load(void * objPtr, const char * entry_point_name, process_t** elfloader_process, int isInROM)
+int elfloader_load(void * objPtr, const char * entry_point_name, process_t** elfloader_process)
 {
 	const elf32_shdr_t* strtable;
 
