@@ -132,10 +132,8 @@ int main(void)
 
 	cc1100_set_packet_handler(5, packethandler);
 
-	LED_RED_OFF;
-
 	// elfloader_load needs more stack, than the default stack size
-	thread_create(loader_stack, LOADER_STACK_SIZE, PRIORITY_MAIN - 1, CREATE_WOUT_YIELD | CREATE_STACKTEST, run, "elfloader_thread");
-	
+	thread_create(loader_stack, LOADER_STACK_SIZE, PRIORITY_MAIN, CREATE_WOUT_YIELD | CREATE_STACKTEST, run, "elfloader_thread");
+
     return 0;
 }
