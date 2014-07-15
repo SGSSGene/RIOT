@@ -108,6 +108,18 @@ which can usually be done with the --relocatable linker switch:
 
 	${MY_CPU_SPECIFIC_LD} -r file1.o file2.o -o combined_files.o
 
+Putting Objectfiles onto the device
+-----------------------------------
+
+To put and relocate an object file persistently, you need to put into
+the flash memory. Then during relocation, the new values are falshed
+persistently. You need to take care, that
+
+- The object file does not share any segements with running code,
+  because the flashing would interfere badly with it.
+- The object file is aligned according to CPU requirements. Usually
+  word size alignment.
+
 Implementing CPU specific relocation functionality
 --------------------------------------------------
 
